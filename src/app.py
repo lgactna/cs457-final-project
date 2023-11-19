@@ -24,19 +24,31 @@ CONTENT_STYLE = {
     "padding": "2rem 1rem",
 }
 
+# Separte div by groups
+groups: dict[str, list] = {}
+for page in dash.page_registry.values():
+    group = page["group"]
+    if group not in groups:
+        groups[group] = []
+
+    groups[group].append(
+        dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
+    )
+
+# Generate group divs
+nav_eles = []
+for group_name, group_set in groups.items():
+    nav_eles.append(
+        html.Div([html.B(group_name), dbc.Nav(group_set, vertical=True, pills=True)])
+    )
+
+# Intersperse individual group divs with horizontal rules
+# https://stackoverflow.com/questions/5920643/add-an-item-between-each-item-already-in-the-list
+nv = [html.Hr()] * (len(nav_eles) * 2 - 1)
+nv[0::2] = nav_eles
+
 sidebar = html.Div(
-    [
-        html.P("TETR.IO Statistics", className="display-6"),
-        html.Hr(),
-        dbc.Nav(
-            [
-                dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
-                for page in dash.page_registry.values()
-            ],
-            vertical=True,
-            pills=True,
-        ),
-    ],
+    [html.P("TETR.IO Statistics", className="display-6"), html.Hr(), html.Div(nv)],
     style=SIDEBAR_STYLE,
 )
 
