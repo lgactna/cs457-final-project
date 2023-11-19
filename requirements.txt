@@ -1,5 +1,10 @@
 # Functional
-pycryptodome
+dash
+dash-bootstrap-components
+pandas
+plotly
+requests
+SQLAlchemy
 
 # Linting
 black
