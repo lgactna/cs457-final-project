@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
+# Will need to change this to a "standard" SQLite databse later on
 engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
 session = Session(engine)
 
@@ -55,7 +56,10 @@ Base.metadata.create_all(engine)
 session.add(u)
 session.commit()
 u = session.execute(sqlalchemy.select(User).where(User.name=='hi')).all()
+# create_all is idempotent by default (conditional=True), which means that
+# nothing happens by default if you call this on a database that already has
+# the relevant tables created
+Base.metadata.create_all(engine)
 print(u)
 
 
-Base.metadata.create_all(engine)
