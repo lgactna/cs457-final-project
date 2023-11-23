@@ -5,6 +5,7 @@ pandas
 plotly
 requests
 SQLAlchemy
+python-dateutil
 
 # Linting
 black

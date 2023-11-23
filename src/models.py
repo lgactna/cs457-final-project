@@ -36,7 +36,10 @@ class Player(Base):
     # to enter it as a hex string.
     id: Mapped[str] = mapped_column(sqlalchemy.Uuid(as_uuid=False), primary_key=True)
 
-    join_date: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
+    # This is nullable for two reasons:
+    # - join dates may actually be null if not recorded
+    # - players should be createable even if we don't know their join date
+    join_date: Mapped[Optional[datetime.datetime]] = mapped_column(sqlalchemy.DateTime(), nullable=True)
 
     p_snapshots: Mapped[List["PlayerSnapshot"]] = relationship(back_populates="player")
     tl_snapshots: Mapped[List["LeagueSnapshot"]] = relationship(back_populates="player")
@@ -55,6 +58,7 @@ class PlayerSnapshot(Base):
 
     # Autoincrementing serial ID.
     id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
 
     username: Mapped[str] = mapped_column(sqlalchemy.String(50))
     role: Mapped[str] = mapped_column(sqlalchemy.String(15))
@@ -99,6 +103,8 @@ class LeagueSnapshot(Base):
     __tablename__ = "tl_snapshot"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
+
 
     tl_games_played: Mapped[int] = mapped_column(sqlalchemy.Integer())
     tl_games_won: Mapped[int] = mapped_column(sqlalchemy.Integer())
@@ -130,8 +136,10 @@ class LeagueMatch(Base):
     # returned with the API request), but this is maintained manually since the
     # format *could* change
     id: Mapped[int] = mapped_column(primary_key=True)
+    ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
 
-    tl_players: Mapped[List["LeagueMatchPlayer"]] = relationship(back_populates="player")
+    tl_players: Mapped[List["LeagueMatchPlayer"]] = relationship(back_populates="tl_match")
+    
 
 class LeagueMatchPlayer(Base):
     """
@@ -146,7 +154,9 @@ class LeagueMatchPlayer(Base):
 
     # Currently "success" in API stream responses
     winner: Mapped[bool] = mapped_column(sqlalchemy.Boolean())
+    points: Mapped[int] = mapped_column(sqlalchemy.Integer())
 
+    # Handling data
     arr: Mapped[decimal.Decimal] = mapped_column(sqlalchemy.Numeric(6, 3))
     das: Mapped[decimal.Decimal] = mapped_column(sqlalchemy.Numeric(6, 3))
     dcd: Mapped[decimal.Decimal] = mapped_column(sqlalchemy.Numeric(6, 3))
@@ -154,19 +164,28 @@ class LeagueMatchPlayer(Base):
     safelock: Mapped[bool] = mapped_column(sqlalchemy.Boolean())
     cancel: Mapped[bool] = mapped_column(sqlalchemy.Boolean())
 
+    # The username at the time of the match.
+    username: Mapped[str] = mapped_column(sqlalchemy.String(50))
+
     # Outgoing
     tl_match: Mapped[LeagueMatch] = relationship(back_populates="tl_players")
     player: Mapped[Player] = relationship(back_populates="tl_matches")
 
     # Incoming
-    rounds: Mapped["LeagueRound"] = relationship(back_populates="tl_round_player")
+    rounds: Mapped[List["LeagueRound"]] = relationship(back_populates="tl_round_player")
 
 class LeagueRound(Base):
     """
     Represents a single round played as part of a multiplyer match.
 
     This is not provided directly by the API, and must be calculated from
-    provided information manually.
+    provided information manually. Note that the "opposing" players
+    are not directly stored with this object; you must take the corresponding
+    round_idx of each player involved in a LeagueMatch to correlate this data.
+    
+    Additionally, note that it does not appear to be possible to derive
+    the individual rounds in which a user won from the API data alone.
+    This is likely tied to the underlying replay data.
 
     It is possible (if not likely) that these fields and how they're calculated
     will change in the future, but fortunately, not in the near future.
@@ -175,12 +194,19 @@ class LeagueRound(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
 
+    # The relative round index to the LeagueMatch. This makes the currently safe
+    # assumption that two players in a 1v1 will play the same number of games,
+    # but falls apart if we ever get something like an open lobby of multiple
+    # players, where it is not guaranteed everyone is playing at the same time.
+    round_idx: Mapped[int] = mapped_column(sqlalchemy.Integer())
+
     apm: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
     pps: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
     vs: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
 
     player: Mapped[Player] = relationship(back_populates="tl_rounds")
     tl_round_player: Mapped[LeagueMatchPlayer] = relationship(back_populates="rounds")
+
 
 def create_tables(engine: sqlalchemy.engine.Engine, checkfirst: bool=True) -> None: 
     """

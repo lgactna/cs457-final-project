@@ -27,8 +27,8 @@ class Base(DeclarativeBase):
 class User(Base):
     __tablename__ = "user_account"
 
-    id: Mapped[int] = mapped_column(primary_key=True)
-    name: Mapped[str] = mapped_column(String(30))
+    id: Mapped[int] = mapped_column(nullable=True)
+    name: Mapped[str] = mapped_column(String(30), primary_key=True)
     fullname: Mapped[Optional[str]]
 
     addresses: Mapped[List["Address"]] = relationship(back_populates="user")
@@ -41,7 +41,7 @@ class Address(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     email_address: Mapped[str]
-    user_id = mapped_column(ForeignKey("user_account.id"))
+    user_id = mapped_column(ForeignKey("user_account.name"))
 
     user: Mapped[User] = relationship(back_populates="addresses")
 
@@ -49,13 +49,16 @@ class Address(Base):
         return f"Address(id={self.id!r}, email_address={self.email_address!r})"
 
 u = User(name="hi")
-a = Address(email_address="hi", user=u)
+u2 = User(name="hi")
+a = Address(email_address="hi", user=u2)
 
 print(u.addresses)
 Base.metadata.create_all(engine)
 session.add(u)
 session.commit()
-u = session.execute(sqlalchemy.select(User).where(User.name=='hi')).all()
+session.add(a)
+session.commit()
+# u = session.execute(sqlalchemy.select(User).where(User.name=='hsi')).one()
 # create_all is idempotent by default (conditional=True), which means that
 # nothing happens by default if you call this on a database that already has
 # the relevant tables created
