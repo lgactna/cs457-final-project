@@ -2,7 +2,6 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import dcc, html, Input, Output, callback
 
-
 # This is registered as the homepage with path `/`, else accessing the server
 # yields a 404 until you click on one of the pages
 dash.register_page(

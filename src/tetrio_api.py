@@ -13,7 +13,7 @@ import time
 from dateutil import parser
 import requests
 
-import controller
+import db_con
 import models
 import util
 
@@ -41,7 +41,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
         raise ValueError("A UUID is required")
 
     # Check DB by default
-    if u := controller.get_player(uuid):
+    if u := db_con.get_player(uuid):
         logger.debug("Used database version of model...")
         return u
 
@@ -65,7 +65,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
 
     # Auto-commit the new player, so that any successive operations will use
     # the stored player object instead of creating new ones
-    with controller.session_maker.begin() as session:
+    with db_con.session_maker.begin() as session:
         logger.debug("Created and committed new model...")
         session.add(u)
 

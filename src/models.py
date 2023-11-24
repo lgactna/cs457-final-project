@@ -16,6 +16,8 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
+import pandas as pd
+
 # https://stackoverflow.com/questions/54026174/proper-autogenerate-of-str-implementation-also-for-sqlalchemy-classes
 # MappedAsDataclass doesn't work the way I think it does, so this is the approach
 # for auto __str__ instead

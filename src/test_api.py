@@ -1,7 +1,7 @@
 """
 Various testing routines to make sure the API works
 """
-import controller, models, tetrio_api
+import db_con, models, tetrio_api
 
 import sys
 import logging
@@ -20,8 +20,8 @@ logger = logging.getLogger(__name__)
 
 # Test that everything works
 # controller.init_engine('sqlite+pysqlite:///:memory:', echo=False)
-controller.init_engine("sqlite:///tetrio.db", echo=True)
-models.create_tables(controller.engine)
+db_con.init_engine("sqlite:///tetrio.db", echo=True)
+models.create_tables(db_con.engine)
 player_snapshot, tl_snapshot = tetrio_api.get_player_snapshots("kisun")
 
 # print(player_snapshot)
@@ -31,17 +31,14 @@ uuid = "5e7143c90f031003f4393fbf"
 recent_games = tetrio_api.get_player_recent(uuid)
 record_games = tetrio_api.get_player_records(uuid)
 
-all_games = controller.merge_records(record_games, recent_games)
+all_games = db_con.merge_records(record_games, recent_games)
 
 matches = tetrio_api.get_player_matches(uuid)
 
-all_games = controller.isolate_new_records(all_games)
-matches = controller.isolate_new_matches(matches)
+all_games = db_con.isolate_new_records(all_games)
+matches = db_con.isolate_new_matches(matches)
 
-# See below. The merge operation allows us to "get away" with using different
-# Player objects (as a result of several distinct calls to controller.get_player()),
-# all of which represent the same thing, but then merge them all cleanly at the end.
-with controller.session_maker.begin() as session:
+with db_con.session_maker.begin() as session:
     session.add(player_snapshot)
     session.add(tl_snapshot)
     session.add_all(all_games)
@@ -66,8 +63,10 @@ exit()
 # between everything, but that violates the principle that each API call does
 # its own thing. So we'll just have to put up with this.
 #
-# The alternative is to use `session.merge`, which reconciles this issue.
-with controller.session_maker.begin() as session:
+# The alternative is to use `session.merge`, which reconciles this issue. 
+# Or, as has been implemented, to just use the actual field instead of relying
+# on the ORM for the foreign key fields.
+with db_con.session_maker.begin() as session:
     session.add_all(recent_games)
     session.merge(player_snapshot)
     session.merge(tl_snapshot)
@@ -75,8 +74,8 @@ with controller.session_maker.begin() as session:
 # with controller.session_maker.begin() as session:
 #     session.add_all(recent_games)
 
-record_games = controller.isolate_new_records(record_games)
-with controller.session_maker.begin() as session:
+record_games = db_con.isolate_new_records(record_games)
+with db_con.session_maker.begin() as session:
     # Auto-commits
     # session.add(player_snapshot)
     # session.add(tl_snapshot)
