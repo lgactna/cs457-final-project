@@ -1,7 +1,7 @@
 """
 Routines for grabbing and information from the TETR.IO API.
 
-With the exception of `get_player_by_uuid`, which reads the database, none of 
+With the exception of `get_player_by_uuid`, which reads the database, none of
 these routines interact with the underlying database at all; they simply create
 ORM-mapped objects that can be committed and handled by the user as needed.
 """
@@ -9,11 +9,9 @@ from typing import Union, Optional
 import datetime
 import logging
 import time
-import uuid
 
 import dateutil
 import requests
-import sqlalchemy
 
 import controller
 import models
@@ -23,201 +21,347 @@ logger = logging.getLogger(__name__)
 
 API = "https://ch.tetr.io/api"
 
-def get_player_by_uuid(uuid: str, data:Optional[dict], use_api: bool=False) -> models.Player:
+
+def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
     """
     Generate a player object from a UUID.
-    
+
     This first checks the underlying database if a player already exists, and
     returns if it already exists. This *does not* commit the new player object
     to the database if one is created.
-    
+
     By default, this simply assumes that the input UUID is valid. This is to avoid
     excessive API calls by accident, particularly when the Tetra League database is
     created for the first time.
-    
+
     :param data: The full JSON response of an api/users/{id} call.
     """
     # Assert that this is actually a UUID
     if not util.is_valid_uuid(uuid):
-        raise ValueError('A UUID is required')
-    
+        raise ValueError("A UUID is required")
+
     # Check DB by default
     if u := controller.get_player(uuid):
         return u
-    
+
     if use_api:
-        # Defer to API (or dictionary)
-        if not data:
-            r = requests.get(f"{API}/users/{uuid}")
-            data = r.json()
-            logger.debug("An API request to get a user was made. Auto-throttling.")
-            time.sleep(1)
-            
-        if not data['success']:
-            raise ValueError('User was not found')
+        # Defer to API
+        r = requests.get(f"{API}/users/{uuid}")
+        data = r.json()
+        logger.debug("An API request to get a user was made. Auto-throttling.")
+        time.sleep(1)
+
+        if not data["success"]:
+            raise ValueError("User was not found")
 
         return models.Player(
-            id=data['data']['user']['_id'],
-            join_date=dateutil.parser(data['data']['user']['ts'])
+            id=data["data"]["user"]["_id"],
+            join_date=dateutil.parser.parse(data["data"]["user"]["ts"]),
         )
-    
-    # Trust the user and assume the UUID is good
-    return models.Player(
-        id=uuid
-    )
 
-def get_id_from_username(username: str, data: Optional[dict]) -> Union[str, None]:
+    # Trust the user and assume the UUID is good
+    return models.Player(id=uuid)
+
+
+def get_id_from_username(username: str) -> Union[str, None]:
     """
     Attempt to get the Mongo ID associated with a username.
 
     If the lookup fails, returns `None`.
-    
+
     :param username: The standard username to lookup.
     """
-    if not data:
-        r = requests.get(f"{API}/users/{username}")
-        data = r.json()
+    r = requests.get(f"{API}/users/{username}")
+    data = r.json()
 
-    if r['success']:
+    if data["success"]:
         return data["data"]["user"]["_id"]
     else:
         return None
 
-def get_global_data(data: Optional[dict]) -> list[models.LeagueSnapshot]:
+
+def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
     """
     Get Tetra League snapshots for every ranked player.
+
+    Explicitly an empty dictionary for `data` if necessary. During development,
+    you should aim to use a stored copy of the global data where needed.
     """
     if not data:
         r = requests.get(f"{API}/users/lists/league/all")
         data = r.json()
-    
+
     ts = datetime.datetime.now(datetime.timezone.utc)
     snapshots: list[models.LeagueSnapshot] = []
-    
-    for rank, user in enumerate(data['data']['users'], 1):
-        player = get_player_by_uuid(user['_id'])
-        tl_data = user['league']
+
+    for rank, user in enumerate(data["data"]["users"], 1):
+        player = get_player_by_uuid(user["_id"])
+        tl_data = user["league"]
         snapshots.append(
             models.LeagueSnapshot(
                 ts=ts,
-                tl_games_played=tl_data['gamesplayed'],
-                tl_games_won=tl_data['gameswon'],
-                rating=tl_data['rating'],
-                rank=tl_data['rank'],
-                standing=rank, # This *should* be correct
-                glicko=tl_data['glicko'],
-                rd=tl_data['rd'],
-                apm=tl_data['apm'],
-                pps=tl_data['pps'],
-                vs=tl_data['vs'],
-                decaying=tl_data['decaying'],
-                player=player
+                tl_games_played=tl_data["gamesplayed"],
+                tl_games_won=tl_data["gameswon"],
+                rating=tl_data["rating"],
+                rank=tl_data["rank"],
+                standing=rank,  # This *should* be correct
+                glicko=tl_data["glicko"],
+                rd=tl_data["rd"],
+                apm=tl_data["apm"],
+                pps=tl_data["pps"],
+                vs=tl_data["vs"],
+                decaying=tl_data["decaying"],
+                player=player,
             )
         )
-        
+
     return snapshots
+
 
 def match_from_game(data: dict) -> models.LeagueMatch:
     """
     Interpret a Tetra League stream record into a LeagueMatch.
     """
-    ts = dateutil.parser(data['ts'])
-    
-    match_players: List[models.LeagueMatchPlayer] = []
-    for player in data['endcontext']:
-        player_obj = get_player_by_uuid(player['id'])
-        
+    ts = dateutil.parser.parse(data["ts"])
+
+    match_players: list[models.LeagueMatchPlayer] = []
+    for player in data["endcontext"]:
+        player_obj = get_player_by_uuid(player["id"])
+
         # Generate match player
         match_player_obj = models.LeagueMatchPlayer(
-            winner=player['success'],
-            points=player['wins'],
-            arr=player['handling']['arr'],
-            das=player['handling']['das'],
-            dcd=player['handling']['dcd'],
-            sdf=player['handling']['sdf'],
-            safelock=player['handling']['safelock'],
-            cancel=player['handling']['cancel'],
-            username=player['username'],
-            player=player_obj
+            winner=player["success"],
+            points=player["wins"],
+            arr=player["handling"]["arr"],
+            das=player["handling"]["das"],
+            dcd=player["handling"]["dcd"],
+            sdf=player["handling"]["sdf"],
+            safelock=player["handling"]["safelock"],
+            cancel=player["handling"]["cancel"],
+            username=player["username"],
+            player=player_obj,
         )
-        
+
         # Generate rounds
-        points = player['points']
+        points = player["points"]
         rounds: list[models.LeagueRound] = []
-        for i in range(len(points['secondaryAvgTracking'])):
-            rounds.append(models.LeagueRound(
-                round_idx = i,
-                apm = points['secondaryAvgTracking'][idx],
-                pps = points['tertiaryAvgTracking'][idx],
-                vs = points['extraAvgTracking']['aggregatestats___vsscore'][idx],
-                player=player_obj,
-                tl_round_player=match_player_obj
-            ))
-            
+        for idx in range(len(points["secondaryAvgTracking"])):
+            rounds.append(
+                models.LeagueRound(
+                    round_idx=idx,
+                    apm=points["secondaryAvgTracking"][idx],
+                    pps=points["tertiaryAvgTracking"][idx],
+                    vs=points["extraAvgTracking"]["aggregatestats___vsscore"][idx],
+                    player=player_obj,
+                    tl_round_player=match_player_obj,
+                )
+            )
+
         # Assign rounds to player and add to set of players
         match_player_obj.rounds = rounds
         match_players.append(match_player_obj)
-        
-        
+
     # With each individual round parsed, generate the overall match structure
-    return models.LeagueMatch(
-        ts=ts,
-        tl_players=match_players
-    )
-    
+    return models.LeagueMatch(ts=ts, tl_players=match_players)
+
+
 def get_player_matches(user: str) -> Union[list[models.LeagueMatch], None]:
     """
     Get the recent Tetra League matches associated with the user.
-    
+
     This also generates the `LeagueMatchPlayer` and `LeagueRound` information
     associated with the match.
-    
+
     Returns `None` if the player does not exist. Note that an empty
     list is returned in all other cases, including if the player
     has not played any games recently or is banned.
-    
+
     :param user: Either the username or user ID to get matches for.
     """
     # We need a UUID to inspect the stream. Assume that if a conversion fails,
     # it must be because this is not a UUID.
     if not util.is_valid_uuid(user):
-        user = get_id_from_username(user)
-    
+        u = get_id_from_username(user)
+        if not u:
+            return None
+        user = u
+
     r = requests.get(f"{API}/streams/league_userrecent_{user}")
     data = r.json()
-    
-    if not data['success']:
+
+    if not data["success"]:
         return None
-    
+
     # Start iterating over each game
     matches: list[models.LeagueMatch] = []
-    for match_data in data['records']:
+    for match_data in data["records"]:
         matches.append(match_from_game(match_data))
-        
+
     return matches
 
 
-def get_player_games(user: str) -> list[models.PlayerGame]:
+def parse_record(game: dict, player_obj: models.Player) -> models.PlayerGame:
+    """
+    Parse a singleplayer record.
+
+    You must generate the affiliated player object ahead of time.
+    """
+    gamemode = game["endcontext"]["gametype"]
+    if gamemode == "40l":
+        value = game["endcontext"]["finalTime"]
+    elif gamemode == "blitz":
+        value = game["endcontext"]["score"]
+    else:
+        raise RuntimeError(f"Unknown gamemode {gamemode}")
+
+    return models.PlayerGame(
+        gamemode=gamemode,
+        replay_id=game["endcontext"]["replayid"],
+        ts=dateutil.parser.parse(game["ts"]),
+        value=value,
+        player=player_obj,
+    )
+
+
+def get_player_recent(user: str) -> Union[list[models.PlayerGame], None]:
     """
     Get the recent Blitz and 40L games associated with the user.
-    
+
     :param user: Either the username or user ID to get recent games for.
-    :param data: If present, the dictionary to pull data from. Else, a request 
-        is issued to the TETR.IO API.
     """
-    pass
+    # We need a UUID to inspect the stream. Assume that if a conversion fails,
+    # it must be because this is not a UUID.
+    if not util.is_valid_uuid(user):
+        u = get_id_from_username(user)
+        if not u:
+            return None
+        user = u
 
-def get_player_records(user: str) -> list[models.PlayerGame]:
+    r = requests.get(f"{API}/streams/league_userrecent_{user}")
+    data = r.json()
+
+    if not data["success"]:
+        return None
+
+    player_obj = get_player_by_uuid(user, use_api=True)
+
+    games: list[models.PlayerGame] = []
+    for game in data["data"]["records"]:
+        games.append(parse_record(game, player_obj))
+
+    return games
+
+
+def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # type: ignore
     """
-    Get the current Blitz and 40L records of a user.
-    
+    Get the current Blitz and 40L records of a user. This amounts
+    to the top n records for that user, typically the top 10, for
+    the two gamemodes.
+
     :param user: Either the username or user ID to get singleplayer records for.
-    :param data: If present, the dictionary to pull data from. Else, a request 
-        is issued to the TETR.IO API.
     """
-    pass
+    # We need a UUID to inspect the stream. Assume that if a conversion fails,
+    # it must be because this is not a UUID.
+    if not util.is_valid_uuid(user):
+        u = get_id_from_username(user)
+        if not u:
+            return None
+        user = u
 
-def get_player_snapshot(user: str) -> models.PlayerSnapshot:
+    r = requests.get(f"{API}/streams/league_userrecent_{user}")
+    data = r.json()
+
+    # All raw records
+    raw_records: list[dict] = []
+
+    # Make API for Blitz scores
+    r = requests.get(f"{API}/streams/blitz_userbest_{user}")
+    data = r.json()
+    if not data["success"]:
+        return None
+
+    # Exclude the first
+    if data["data"]["records"]:
+        raw_records += data["data"]["records"][1:]
+
+    # Make API for 40L scores
+    r = requests.get(f"{API}/streams/40l_userbest_{user}")
+    data = r.json()
+    if not data["success"]:
+        return None
+
+    # Again, exclude the first
+    if data["data"]["records"]:
+        raw_records += data["data"]["records"][1:]
+
+    player_obj = get_player_by_uuid(user, use_api=True)
+    games: list[models.PlayerGame] = []
+    for game in raw_records:
+        games.append(parse_record(game, player_obj))
+
+    # Make API call for the user's actual records, which contain slightly more
+    # information
+    r = requests.get(f"{API}/users/{user}/records")
+    data = r.json()
+    if not data["success"]:
+        return None
+
+    for gamemode_record in data["records"].values():
+        game = parse_record(gamemode_record["record"], player_obj)
+        game.rank = gamemode_record["rank"]
+        game.is_record = True
+        games.append(game)
+
+    return games
+
+
+def get_player_snapshots(
+    user: str,  # type: ignore
+) -> Union[tuple(models.PlayerSnapshot, models.LeagueSnapshot), None]:
     """
-    Get a snapshot of the current user.
+    Get a TL and player snapshot of the current user.
+
+    Strictly speaking, this is designed to get PlayerSnapshot instances; however,
+    since LeagueSnapshots can also be constructed from the same data, and there
+    is virtually no chance of the snapshot overlapping in time from a global
+    pull, a LeagueSnapshot is also provided.
     """
+    r = requests.get(f"{API}/users/{user}")
+    data = r.json()
+
+    if not data["success"]:
+        return None
+
+    p_data = data["data"]["user"]
+    player_obj = get_player_by_uuid(p_data["_id"])
+
+    p_snapshot = models.PlayerSnapshot(
+        ts=dateutil.parser.parse(p_data["ts"]),
+        username=p_data["username"],
+        xp=int(p_data["xp"]),
+        games_played=p_data["gamesplayed"],
+        games_won=p_data["games_won"],
+        game_time=int(p_data["gametime"]),
+        friend_count=p_data["friend_count"],
+        player=player_obj,
+    )
+
+    # This is always present, even if the user's never
+    # played anything
+    tl_data = p_data["league"]
+    tl_snapshot = models.LeagueSnapshot(
+        ts=dateutil.parser.parse(p_data["ts"]),
+        tl_games_played=tl_data["gamesplayed"],
+        tl_games_won=tl_data["gameswon"],
+        rating=tl_data["rating"],
+        rank=tl_data["rank"],
+        standing=tl_data["standing"],
+        glicko=tl_data["glicko"],
+        rd=tl_data["rd"],
+        apm=tl_data["apm"],
+        pps=tl_data["pps"],
+        vs=tl_data["vs"],
+        decaying=tl_data["decaying"],
+    )
+
+    return (p_snapshot, tl_snapshot)

@@ -22,7 +22,9 @@ layout = html.Div(
                             " timestamp available in the databse. Unranked players are not included."
                         ),
                         dbc.Button(
-                            "Request global statistics", id="request-global-update-btn", style={"margin-bottom": "10px"}
+                            "Request global statistics",
+                            id="request-global-update-btn",
+                            style={"margin-bottom": "10px"},
                         ),
                     ],
                     width=12,
@@ -30,9 +32,7 @@ layout = html.Div(
                 dbc.Col(
                     [
                         html.B("Request results will appear below."),
-                        dbc.Spinner(
-                            html.Div(id='request-result')
-                        )
+                        dbc.Spinner(html.Div(id="request-result")),
                     ],
                     width=12,
                 ),

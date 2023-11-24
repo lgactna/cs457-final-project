@@ -10,14 +10,16 @@ import datetime
 import decimal
 
 import sqlalchemy
-from sqlalchemy import create_engine, String, ForeignKey
+from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class Player(Base):
     """
@@ -28,6 +30,7 @@ class Player(Base):
     to be searched by username and allow the system to return all records associated
     with the underlying UUID, even if the username changes over time.
     """
+
     __tablename__ = "player"
 
     # UUIDs in the system will be represented as pure hexadecimal strings.
@@ -39,13 +42,17 @@ class Player(Base):
     # This is nullable for two reasons:
     # - join dates may actually be null if not recorded
     # - players should be createable even if we don't know their join date
-    join_date: Mapped[Optional[datetime.datetime]] = mapped_column(sqlalchemy.DateTime(), nullable=True)
+    join_date: Mapped[Optional[datetime.datetime]] = mapped_column(
+        sqlalchemy.DateTime(), nullable=True
+    )
 
     p_snapshots: Mapped[List["PlayerSnapshot"]] = relationship(back_populates="player")
     tl_snapshots: Mapped[List["LeagueSnapshot"]] = relationship(back_populates="player")
-    
+
     p_games: Mapped[List["PlayerGame"]] = relationship(back_populates="player")
-    tl_matches: Mapped[List["LeagueMatchPlayer"]] = relationship(back_populates="player")
+    tl_matches: Mapped[List["LeagueMatchPlayer"]] = relationship(
+        back_populates="player"
+    )
     tl_rounds: Mapped[List["LeagueRound"]] = relationship(back_populates="player")
 
 
@@ -54,6 +61,7 @@ class PlayerSnapshot(Base):
     A snapshot of a player's non-ranked statistics at a particular point in
     time.
     """
+
     __tablename__ = "player_snapshot"
 
     # Autoincrementing serial ID.
@@ -70,10 +78,12 @@ class PlayerSnapshot(Base):
 
     player: Mapped[Player] = relationship(back_populates="p_snapshots")
 
+
 class PlayerGame(Base):
     """
-    Represents an arbitrary game in a singleplayer mode. 
+    Represents an arbitrary game in a singleplayer mode.
     """
+
     __tablename__ = "player_game"
 
     # Autoincrementing serial ID.
@@ -83,9 +93,9 @@ class PlayerGame(Base):
     replay_id: Mapped[str] = mapped_column(sqlalchemy.Uuid(as_uuid=False))
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
     value: Mapped[int] = mapped_column(sqlalchemy.Integer())
-    
-    # The actual numeric rank of the score on the leaderboards. If present, this
-    # indicates a record.
+
+    # The actual numeric rank of the score on the leaderboards, if within the top
+    # 1,000.
     rank: Mapped[Optional[int]] = mapped_column(sqlalchemy.Integer(), nullable=True)
     # Whether or not this is considered a coherent "record" from a singleplayer
     # perspective. Gamemode-specific.
@@ -96,15 +106,16 @@ class PlayerGame(Base):
 
     player: Mapped[Player] = relationship(back_populates="p_games")
 
+
 class LeagueSnapshot(Base):
     """
     A snapshot of a player's Tetra League statistics at a point in time.
     """
+
     __tablename__ = "tl_snapshot"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
-
 
     tl_games_played: Mapped[int] = mapped_column(sqlalchemy.Integer())
     tl_games_won: Mapped[int] = mapped_column(sqlalchemy.Integer())
@@ -124,12 +135,13 @@ class LeagueSnapshot(Base):
 class LeagueMatch(Base):
     """
     A single "set" of Tetra League matches played between two players.
-    
+
     This does not assume a strict 1v1 format, but this is currently the case.
     This should (in theory) support 1v1v1... formats if they were actually
     recorded, but it's not clear how the API will structure team-based gamemodes
     in the future.
     """
+
     __tablename__ = "tl_match"
 
     # All multiplayer games do have an internal ID associated with them (and is
@@ -138,8 +150,10 @@ class LeagueMatch(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
 
-    tl_players: Mapped[List["LeagueMatchPlayer"]] = relationship(back_populates="tl_match")
-    
+    tl_players: Mapped[List["LeagueMatchPlayer"]] = relationship(
+        back_populates="tl_match"
+    )
+
 
 class LeagueMatchPlayer(Base):
     """
@@ -148,6 +162,7 @@ class LeagueMatchPlayer(Base):
     This includes handling information at the time of the match, as well as
     overall information provided by the API.
     """
+
     __tablename__ = "tl_match_player"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -174,6 +189,7 @@ class LeagueMatchPlayer(Base):
     # Incoming
     rounds: Mapped[List["LeagueRound"]] = relationship(back_populates="tl_round_player")
 
+
 class LeagueRound(Base):
     """
     Represents a single round played as part of a multiplyer match.
@@ -182,7 +198,7 @@ class LeagueRound(Base):
     provided information manually. Note that the "opposing" players
     are not directly stored with this object; you must take the corresponding
     round_idx of each player involved in a LeagueMatch to correlate this data.
-    
+
     Additionally, note that it does not appear to be possible to derive
     the individual rounds in which a user won from the API data alone.
     This is likely tied to the underlying replay data.
@@ -190,6 +206,7 @@ class LeagueRound(Base):
     It is possible (if not likely) that these fields and how they're calculated
     will change in the future, but fortunately, not in the near future.
     """
+
     __tablename__ = "tl_round"
 
     id: Mapped[int] = mapped_column(primary_key=True)
@@ -208,7 +225,7 @@ class LeagueRound(Base):
     tl_round_player: Mapped[LeagueMatchPlayer] = relationship(back_populates="rounds")
 
 
-def create_tables(engine: sqlalchemy.engine.Engine, checkfirst: bool=True) -> None: 
+def create_tables(engine: sqlalchemy.engine.Engine, checkfirst: bool = True) -> None:
     """
     Create tables for the provided engine.
 
@@ -217,9 +234,10 @@ def create_tables(engine: sqlalchemy.engine.Engine, checkfirst: bool=True) -> No
     """
     Base.metadata.create_all(engine, checkfirst=checkfirst)
 
+
 if __name__ == "__main__":
     engine = create_engine("sqlite+pysqlite:///:memory:", echo=True)
-    
+
     create_tables(engine)
 
     session = Session(engine)

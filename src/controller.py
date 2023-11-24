@@ -15,23 +15,24 @@ import models
 engine: Optional[sqlalchemy.Engine] = None
 session_maker: Optional[sqlalchemy.orm.sessionmaker] = None
 
-def init_engine(url: str, echo: bool=True) -> None:
+
+def init_engine(url: str, echo: bool = True) -> None:
     """
     Initialize the global module states.
     """
     global engine
-    global session
+    global session_maker
     engine = sqlalchemy.create_engine(url, echo)
-    session = sqlalchemy.orm.sessionmaker(engine)
-    
-def get_session(engine: sqlalchemy.Engine) -> sqlalchemy.orm.Session:
-    session = sqlalchemy.orm.Session(engine)
-    
+    session_maker = sqlalchemy.orm.sessionmaker(engine)
+
+
 def get_player(uuid: str) -> Union[models.Player, None]:
     """
     Get a player by UUID.
-    
+
     If the player does not exist, returns None.
     """
     with session_maker() as session:
-        return session.execute(sqlalchemy.select(models.Player).where(models.Player.id==uuid)).one_or_none()
+        return session.execute(
+            sqlalchemy.select(models.Player).where(models.Player.id == uuid)
+        ).one_or_none()
