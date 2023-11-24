@@ -1,6 +1,21 @@
+import logging
+import sys
+
 import dash
 from dash import html
 import dash_bootstrap_components as dbc
+
+logging.basicConfig(
+    handlers=[
+        logging.FileHandler("app.log", mode="a", encoding="utf-8"),
+        logging.StreamHandler(sys.stdout),
+    ],
+    level=logging.DEBUG,
+    format="%(filename)s:%(lineno)d | %(asctime)s | [%(levelname)s] - %(message)s",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+
+logger = logging.getLogger(__name__)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], use_pages=True)
 

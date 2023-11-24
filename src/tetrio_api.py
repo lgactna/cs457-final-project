@@ -27,7 +27,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
     Generate a player object from a UUID.
 
     This first checks the underlying database if a player already exists, and
-    returns if it already exists. This *does not* commit the new player object
+    returns if it already exists. This *does* commit the new player object
     to the database if one is created.
 
     By default, this simply assumes that the input UUID is valid. This is to avoid
@@ -42,6 +42,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
 
     # Check DB by default
     if u := controller.get_player(uuid):
+        logger.debug("Used database version of model...")
         return u
 
     if use_api:
@@ -54,13 +55,21 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
         if not data["success"]:
             raise ValueError("User was not found")
 
-        return models.Player(
+        u = models.Player(
             id=data["data"]["user"]["_id"],
             join_date=parser.parse(data["data"]["user"]["ts"]),
         )
 
     # Trust the user and assume the UUID is good
-    return models.Player(id=uuid)
+    u = models.Player(id=uuid)
+
+    # Auto-commit the new player, so that any successive operations will use
+    # the stored player object instead of creating new ones
+    with controller.session_maker.begin() as session:
+        logger.debug("Created and committed new model...")
+        session.add(u)
+
+    return u
 
 
 def get_id_from_username(username: str) -> Union[str, None]:
@@ -84,8 +93,8 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
     """
     Get Tetra League snapshots for every ranked player.
 
-    Explicitly specify an empty dictionary for `data` if necessary. During 
-    development, you should aim to use a stored copy of the global data where 
+    Explicitly specify an empty dictionary for `data` if necessary. During
+    development, you should aim to use a stored copy of the global data where
     needed.
     """
     if not data:
@@ -96,7 +105,9 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
     snapshots: list[models.LeagueSnapshot] = []
 
     for rank, user in enumerate(data["data"]["users"], 1):
-        player = get_player_by_uuid(user["_id"])
+        # We don't use the `player` relationship here to avoid the weird
+        # out-of-session reconciliation that would need to happen otherwise.
+        # player = get_player_by_uuid(user["_id"])
         tl_data = user["league"]
         snapshots.append(
             models.LeagueSnapshot(
@@ -112,7 +123,7 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
                 pps=tl_data["pps"],
                 vs=tl_data["vs"],
                 decaying=tl_data["decaying"],
-                player=player,
+                player_id=user["_id"],
             )
         )
 
@@ -127,7 +138,7 @@ def match_from_game(data: dict) -> models.LeagueMatch:
 
     match_players: list[models.LeagueMatchPlayer] = []
     for player in data["endcontext"]:
-        player_obj = get_player_by_uuid(player["id"])
+        # player_obj = get_player_by_uuid(player["id"])
 
         # Generate match player
         match_player_obj = models.LeagueMatchPlayer(
@@ -140,7 +151,7 @@ def match_from_game(data: dict) -> models.LeagueMatch:
             safelock=player["handling"]["safelock"],
             cancel=player["handling"]["cancel"],
             username=player["username"],
-            player=player_obj,
+            player_id=player["id"],
         )
 
         # Generate rounds
@@ -153,7 +164,7 @@ def match_from_game(data: dict) -> models.LeagueMatch:
                     apm=points["secondaryAvgTracking"][idx],
                     pps=points["tertiaryAvgTracking"][idx],
                     vs=points["extraAvgTracking"]["aggregatestats___vsscore"][idx],
-                    player=player_obj,
+                    player_id=player["id"],
                     tl_round_player=match_player_obj,
                 )
             )
@@ -163,7 +174,9 @@ def match_from_game(data: dict) -> models.LeagueMatch:
         match_players.append(match_player_obj)
 
     # With each individual round parsed, generate the overall match structure
-    return models.LeagueMatch(ts=ts, tl_players=match_players)
+    return models.LeagueMatch(
+        replay_id=data["replayid"], ts=ts, tl_players=match_players
+    )
 
 
 def get_player_matches(user: str) -> Union[list[models.LeagueMatch], None]:
@@ -195,13 +208,13 @@ def get_player_matches(user: str) -> Union[list[models.LeagueMatch], None]:
 
     # Start iterating over each game
     matches: list[models.LeagueMatch] = []
-    for match_data in data['data']["records"]:
+    for match_data in data["data"]["records"]:
         matches.append(match_from_game(match_data))
 
     return matches
 
 
-def parse_record(game: dict, player_obj: models.Player) -> models.PlayerGame:
+def parse_record(game: dict, player_id: str) -> models.PlayerGame:
     """
     Parse a singleplayer record.
 
@@ -220,7 +233,8 @@ def parse_record(game: dict, player_obj: models.Player) -> models.PlayerGame:
         replay_id=game["replayid"],
         ts=parser.parse(game["ts"]),
         value=value,
-        player=player_obj,
+        is_record=False,  # By default
+        player_id=player_id,
     )
 
 
@@ -244,11 +258,11 @@ def get_player_recent(user: str) -> Union[list[models.PlayerGame], None]:
     if not data["success"]:
         return None
 
-    player_obj = get_player_by_uuid(user, use_api=True)
+    # player_obj = get_player_by_uuid(user, use_api=True)
 
     games: list[models.PlayerGame] = []
     for game in data["data"]["records"]:
-        games.append(parse_record(game, player_obj))
+        games.append(parse_record(game, user))
 
     return games
 
@@ -281,7 +295,7 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     if not data["success"]:
         return None
 
-    # Exclude the first
+    # Exclude the first (which is guaranteed to get caught by the next req)
     if data["data"]["records"]:
         raw_records += data["data"]["records"][1:]
 
@@ -295,10 +309,10 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     if data["data"]["records"]:
         raw_records += data["data"]["records"][1:]
 
-    player_obj = get_player_by_uuid(user, use_api=True)
+    # player_obj = get_player_by_uuid(user, use_api=True)
     games: list[models.PlayerGame] = []
     for game in raw_records:
-        games.append(parse_record(game, player_obj))
+        games.append(parse_record(game, user))
 
     # Make API call for the user's actual records, which contain slightly more
     # information
@@ -307,8 +321,8 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     if not data["success"]:
         return None
 
-    for gamemode_record in data['data']["records"].values():
-        game = parse_record(gamemode_record["record"], player_obj)
+    for gamemode_record in data["data"]["records"].values():
+        game = parse_record(gamemode_record["record"], user)
         game.rank = gamemode_record["rank"]
         game.is_record = True
         games.append(game)
@@ -334,7 +348,7 @@ def get_player_snapshots(
         return None
 
     p_data = data["data"]["user"]
-    player_obj = get_player_by_uuid(p_data["_id"])
+    # player_obj = get_player_by_uuid(p_data["_id"])
 
     p_snapshot = models.PlayerSnapshot(
         ts=parser.parse(p_data["ts"]),
@@ -344,7 +358,7 @@ def get_player_snapshots(
         games_won=p_data["gameswon"],
         game_time=int(p_data["gametime"]),
         friend_count=p_data["friend_count"],
-        player=player_obj,
+        player_id=p_data["_id"],
     )
 
     # This is always present, even if the user's never

@@ -20,17 +20,22 @@ from sqlalchemy.orm import relationship
 # MappedAsDataclass doesn't work the way I think it does, so this is the approach
 # for auto __str__ instead
 
+
 def todict(obj):
-    """ Return the object's dict excluding private attributes, 
+    """Return the object's dict excluding private attributes,
     sqlalchemy state and relationship attributes.
     """
-    excl = ('_sa_adapter', '_sa_instance_state')
-    return {k: v for k, v in vars(obj).items() if not k.startswith('_') and
-            not any(hasattr(v, a) for a in excl)}
- 
+    excl = ("_sa_adapter", "_sa_instance_state")
+    return {
+        k: v
+        for k, v in vars(obj).items()
+        if not k.startswith("_") and not any(hasattr(v, a) for a in excl)
+    }
+
+
 class Base(DeclarativeBase):
     def __repr__(self):
-        params = ', '.join(f'{k}={v}' for k, v in todict(self).items())
+        params = ", ".join(f"{k}={v}" for k, v in todict(self).items())
         return f"{self.__class__.__name__}({params})"
 
 
@@ -82,7 +87,7 @@ class PlayerSnapshot(Base):
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
 
     username: Mapped[str] = mapped_column(sqlalchemy.String(50))
-    role: Mapped[str] = mapped_column(sqlalchemy.String(15))
+    role: Mapped[Optional[str]] = mapped_column(sqlalchemy.String(15), nullable=True)
     xp: Mapped[int] = mapped_column(sqlalchemy.Integer())
     games_played: Mapped[int] = mapped_column(sqlalchemy.Integer())
     games_won: Mapped[int] = mapped_column(sqlalchemy.Integer())
@@ -100,11 +105,10 @@ class PlayerGame(Base):
 
     __tablename__ = "player_game"
 
-    # Autoincrementing serial ID.
-    id: Mapped[int] = mapped_column(primary_key=True)
+    replay_id: Mapped[str] = mapped_column(sqlalchemy.String(24), primary_key=True)
 
     gamemode: Mapped[str] = mapped_column(sqlalchemy.String(15))
-    replay_id: Mapped[str] = mapped_column(sqlalchemy.String(24))
+
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
     value: Mapped[int] = mapped_column(sqlalchemy.Integer())
 
@@ -160,10 +164,7 @@ class LeagueMatch(Base):
 
     __tablename__ = "tl_match"
 
-    # All multiplayer games do have an internal ID associated with them (and is
-    # returned with the API request), but this is maintained manually since the
-    # format *could* change
-    id: Mapped[int] = mapped_column(primary_key=True)
+    replay_id: Mapped[str] = mapped_column(sqlalchemy.String(24), primary_key=True)
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
 
     tl_players: Mapped[List["LeagueMatchPlayer"]] = relationship(
@@ -200,7 +201,7 @@ class LeagueMatchPlayer(Base):
 
     # Outgoing
     tl_match: Mapped[LeagueMatch] = relationship(back_populates="tl_players")
-    tl_match_id = mapped_column(ForeignKey("tl_match.id"))
+    tl_match_id = mapped_column(ForeignKey("tl_match.replay_id"))
     player: Mapped[Player] = relationship(back_populates="tl_matches")
     player_id = mapped_column(ForeignKey("player.id"))
 

@@ -2,6 +2,7 @@
 Various utility routines.
 """
 
+
 def is_valid_id(data: str) -> bool:
     """
     Check if a provided string is (probably) a MongoDB ID.
@@ -11,9 +12,9 @@ def is_valid_id(data: str) -> bool:
     """
     if len(data) != 24:
         return False
-    
+
     try:
-        int(data, 16)    
+        int(data, 16)
         return True
     except ValueError:
         return False
