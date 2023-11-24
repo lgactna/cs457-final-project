@@ -10,7 +10,7 @@ import datetime
 import logging
 import time
 
-import dateutil
+from dateutil import parser
 import requests
 
 import controller
@@ -37,7 +37,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
     :param data: The full JSON response of an api/users/{id} call.
     """
     # Assert that this is actually a UUID
-    if not util.is_valid_uuid(uuid):
+    if not util.is_valid_id(uuid):
         raise ValueError("A UUID is required")
 
     # Check DB by default
@@ -56,7 +56,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
 
         return models.Player(
             id=data["data"]["user"]["_id"],
-            join_date=dateutil.parser.parse(data["data"]["user"]["ts"]),
+            join_date=parser.parse(data["data"]["user"]["ts"]),
         )
 
     # Trust the user and assume the UUID is good
@@ -122,7 +122,7 @@ def match_from_game(data: dict) -> models.LeagueMatch:
     """
     Interpret a Tetra League stream record into a LeagueMatch.
     """
-    ts = dateutil.parser.parse(data["ts"])
+    ts = parser.parse(data["ts"])
 
     match_players: list[models.LeagueMatchPlayer] = []
     for player in data["endcontext"]:
@@ -180,7 +180,7 @@ def get_player_matches(user: str) -> Union[list[models.LeagueMatch], None]:
     """
     # We need a UUID to inspect the stream. Assume that if a conversion fails,
     # it must be because this is not a UUID.
-    if not util.is_valid_uuid(user):
+    if not util.is_valid_id(user):
         u = get_id_from_username(user)
         if not u:
             return None
@@ -217,7 +217,7 @@ def parse_record(game: dict, player_obj: models.Player) -> models.PlayerGame:
     return models.PlayerGame(
         gamemode=gamemode,
         replay_id=game["endcontext"]["replayid"],
-        ts=dateutil.parser.parse(game["ts"]),
+        ts=parser.parse(game["ts"]),
         value=value,
         player=player_obj,
     )
@@ -231,7 +231,7 @@ def get_player_recent(user: str) -> Union[list[models.PlayerGame], None]:
     """
     # We need a UUID to inspect the stream. Assume that if a conversion fails,
     # it must be because this is not a UUID.
-    if not util.is_valid_uuid(user):
+    if not util.is_valid_id(user):
         u = get_id_from_username(user)
         if not u:
             return None
@@ -262,7 +262,7 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     """
     # We need a UUID to inspect the stream. Assume that if a conversion fails,
     # it must be because this is not a UUID.
-    if not util.is_valid_uuid(user):
+    if not util.is_valid_id(user):
         u = get_id_from_username(user)
         if not u:
             return None
@@ -317,7 +317,7 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
 
 def get_player_snapshots(
     user: str,  # type: ignore
-) -> Union[tuple(models.PlayerSnapshot, models.LeagueSnapshot), None]:
+) -> Union[tuple[models.PlayerSnapshot, models.LeagueSnapshot], None]:
     """
     Get a TL and player snapshot of the current user.
 
@@ -336,11 +336,11 @@ def get_player_snapshots(
     player_obj = get_player_by_uuid(p_data["_id"])
 
     p_snapshot = models.PlayerSnapshot(
-        ts=dateutil.parser.parse(p_data["ts"]),
+        ts=parser.parse(p_data["ts"]),
         username=p_data["username"],
         xp=int(p_data["xp"]),
         games_played=p_data["gamesplayed"],
-        games_won=p_data["games_won"],
+        games_won=p_data["gameswon"],
         game_time=int(p_data["gametime"]),
         friend_count=p_data["friend_count"],
         player=player_obj,
@@ -350,7 +350,7 @@ def get_player_snapshots(
     # played anything
     tl_data = p_data["league"]
     tl_snapshot = models.LeagueSnapshot(
-        ts=dateutil.parser.parse(p_data["ts"]),
+        ts=parser.parse(p_data["ts"]),
         tl_games_played=tl_data["gamesplayed"],
         tl_games_won=tl_data["gameswon"],
         rating=tl_data["rating"],

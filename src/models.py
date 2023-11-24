@@ -10,15 +10,28 @@ import datetime
 import decimal
 
 import sqlalchemy
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, ForeignKey
 from sqlalchemy.orm import DeclarativeBase, Session
 from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
+# https://stackoverflow.com/questions/54026174/proper-autogenerate-of-str-implementation-also-for-sqlalchemy-classes
+# MappedAsDataclass doesn't work the way I think it does, so this is the approach
+# for auto __str__ instead
 
+def todict(obj):
+    """ Return the object's dict excluding private attributes, 
+    sqlalchemy state and relationship attributes.
+    """
+    excl = ('_sa_adapter', '_sa_instance_state')
+    return {k: v for k, v in vars(obj).items() if not k.startswith('_') and
+            not any(hasattr(v, a) for a in excl)}
+ 
 class Base(DeclarativeBase):
-    pass
+    def __repr__(self):
+        params = ', '.join(f'{k}={v}' for k, v in todict(self).items())
+        return f"{self.__class__.__name__}({params})"
 
 
 class Player(Base):
@@ -28,16 +41,16 @@ class Player(Base):
     Usernames are *not* included here; they are considered "dynamic" and are
     part of a player snapshot. This makes it possible for player snapshots
     to be searched by username and allow the system to return all records associated
-    with the underlying UUID, even if the username changes over time.
+    with the underlying ID, even if the username changes over time.
     """
 
     __tablename__ = "player"
 
-    # UUIDs in the system will be represented as pure hexadecimal strings.
+    # IDs in the system will be represented as pure hexadecimal strings.
     # This removes the (unnecessary) conversion layer that would need to occur if
     # we stored it as binary, since both the TETR.IO API and the user are going
     # to enter it as a hex string.
-    id: Mapped[str] = mapped_column(sqlalchemy.Uuid(as_uuid=False), primary_key=True)
+    id: Mapped[str] = mapped_column(sqlalchemy.String(24), primary_key=True)
 
     # This is nullable for two reasons:
     # - join dates may actually be null if not recorded
@@ -77,6 +90,7 @@ class PlayerSnapshot(Base):
     friend_count: Mapped[int] = mapped_column(sqlalchemy.Integer())
 
     player: Mapped[Player] = relationship(back_populates="p_snapshots")
+    player_id = mapped_column(ForeignKey("player.id"))
 
 
 class PlayerGame(Base):
@@ -90,7 +104,7 @@ class PlayerGame(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
 
     gamemode: Mapped[str] = mapped_column(sqlalchemy.String(15))
-    replay_id: Mapped[str] = mapped_column(sqlalchemy.Uuid(as_uuid=False))
+    replay_id: Mapped[str] = mapped_column(sqlalchemy.String(24))
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
     value: Mapped[int] = mapped_column(sqlalchemy.Integer())
 
@@ -105,6 +119,7 @@ class PlayerGame(Base):
     # probably more effort than it's worth to deal with
 
     player: Mapped[Player] = relationship(back_populates="p_games")
+    player_id = mapped_column(ForeignKey("player.id"))
 
 
 class LeagueSnapshot(Base):
@@ -130,6 +145,7 @@ class LeagueSnapshot(Base):
     decaying: Mapped[bool] = mapped_column(sqlalchemy.Boolean())
 
     player: Mapped[Player] = relationship(back_populates="tl_snapshots")
+    player_id = mapped_column(ForeignKey("player.id"))
 
 
 class LeagueMatch(Base):
@@ -184,7 +200,9 @@ class LeagueMatchPlayer(Base):
 
     # Outgoing
     tl_match: Mapped[LeagueMatch] = relationship(back_populates="tl_players")
+    tl_match_id = mapped_column(ForeignKey("tl_match.id"))
     player: Mapped[Player] = relationship(back_populates="tl_matches")
+    player_id = mapped_column(ForeignKey("player.id"))
 
     # Incoming
     rounds: Mapped[List["LeagueRound"]] = relationship(back_populates="tl_round_player")
@@ -222,7 +240,9 @@ class LeagueRound(Base):
     vs: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
 
     player: Mapped[Player] = relationship(back_populates="tl_rounds")
+    player_id = mapped_column(ForeignKey("player.id"))
     tl_round_player: Mapped[LeagueMatchPlayer] = relationship(back_populates="rounds")
+    tl_round_player_id = mapped_column(ForeignKey("tl_match_player.id"))
 
 
 def create_tables(engine: sqlalchemy.engine.Engine, checkfirst: bool = True) -> None:

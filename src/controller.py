@@ -22,7 +22,7 @@ def init_engine(url: str, echo: bool = True) -> None:
     """
     global engine
     global session_maker
-    engine = sqlalchemy.create_engine(url, echo)
+    engine = sqlalchemy.create_engine(url, echo=echo)
     session_maker = sqlalchemy.orm.sessionmaker(engine)
 
 
