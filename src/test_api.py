@@ -1,7 +1,9 @@
 """
 Various testing routines to make sure the API works
 """
-import db_con, models, tetrio_api
+import db_con
+import models
+import tetrio_api
 
 import json
 import sys
@@ -28,9 +30,17 @@ db_con.init_engine("sqlite:///tetrio.db", echo=False)
 models.create_tables(db_con.engine)
 
 with db_con.session_maker.begin() as session:
-    available_times = list(session.scalars(sqlalchemy.select(models.LeagueSnapshot.ts).distinct()))
+    available_times = list(
+        session.scalars(sqlalchemy.select(models.LeagueSnapshot.ts).distinct())
+    )
     print(available_times)
-    x = list(session.scalars(sqlalchemy.select(models.LeagueSnapshot).where(models.LeagueSnapshot.player_id=='5e7143c90f031003f4393fbf')))
+    x = list(
+        session.scalars(
+            sqlalchemy.select(models.LeagueSnapshot).where(
+                models.LeagueSnapshot.player_id == "5e7143c90f031003f4393fbf"
+            )
+        )
+    )
     # print(x)
 
 # with open('global_data/global-2023-11-14.json') as fp:
@@ -39,10 +49,10 @@ with db_con.session_maker.begin() as session:
 # g_data = tetrio_api.get_global_data(data)
 # for obj in g_data:
 #     obj.ts = parser.parse('2023-11-14T23:48:00.000Z')
-    
+
 # with db_con.session_maker.begin() as session:
 #     session.add_all(g_data)
-    
+
 # with open('global_data/global-2023-11-24.json') as fp:
 #     data = json.load(fp)
 
@@ -93,7 +103,7 @@ exit()
 # between everything, but that violates the principle that each API call does
 # its own thing. So we'll just have to put up with this.
 #
-# The alternative is to use `session.merge`, which reconciles this issue. 
+# The alternative is to use `session.merge`, which reconciles this issue.
 # Or, as has been implemented, to just use the actual field instead of relying
 # on the ORM for the foreign key fields.
 with db_con.session_maker.begin() as session:

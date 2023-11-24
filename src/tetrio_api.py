@@ -5,7 +5,7 @@ With the exception of `get_player_by_uuid`, which reads the database, none of
 these routines interact with the underlying database at all; they simply create
 ORM-mapped objects that can be committed and handled by the user as needed.
 """
-from typing import Union, Optional
+from typing import Union
 import datetime
 import logging
 import time
@@ -322,10 +322,10 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
         return None
 
     for gamemode_record in data["data"]["records"].values():
-        game = parse_record(gamemode_record["record"], user)
-        game.rank = gamemode_record["rank"]
-        game.is_record = True
-        games.append(game)
+        game_obj: models.PlayerGame = parse_record(gamemode_record["record"], user)
+        game_obj.rank = gamemode_record["rank"]
+        game_obj.is_record = True
+        games.append(game_obj)
 
     return games
 

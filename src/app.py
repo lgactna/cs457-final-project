@@ -82,5 +82,5 @@ content = html.Div(dash.page_container, style=CONTENT_STYLE)
 
 app.layout = html.Div([sidebar, content])
 
-if __name__ == "__main__":    
+if __name__ == "__main__":
     app.run_server(debug=True)

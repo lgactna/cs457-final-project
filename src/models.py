@@ -16,8 +16,6 @@ from sqlalchemy.orm import Mapped
 from sqlalchemy.orm import mapped_column
 from sqlalchemy.orm import relationship
 
-import pandas as pd
-
 # https://stackoverflow.com/questions/54026174/proper-autogenerate-of-str-implementation-also-for-sqlalchemy-classes
 # MappedAsDataclass doesn't work the way I think it does, so this is the approach
 # for auto __str__ instead
@@ -132,18 +130,19 @@ class LeagueSnapshot(Base):
     """
     A snapshot of a player's Tetra League statistics at a point in time.
     """
+
     # These are hardcoded and represent the statistic-related options in LeagueSnapshot.
     # The "value" is the name of the attribute as it appears in the LeagueSnapshot
     # definition. This is primarily used in handling Plotly stuff.
     DROPDOWN_OPTIONS = [
-        {'label': "Games played", "value": "tl_games_played"},
-        {'label': "Games won", "value": "tl_games_won"},
-        {'label': 'TR', "value": "rating"},
-        {'label': 'Glicko', "value": "glicko"},
-        {'label': 'RD', "value": "rd"},
-        {'label': 'APM', "value": "apm"},
-        {'label': 'PPS', "value": "pps"},
-        {'label': 'VS', "value": "vs"},
+        {"label": "Games played", "value": "tl_games_played"},
+        {"label": "Games won", "value": "tl_games_won"},
+        {"label": "TR", "value": "rating"},
+        {"label": "Glicko", "value": "glicko"},
+        {"label": "RD", "value": "rd"},
+        {"label": "APM", "value": "apm"},
+        {"label": "PPS", "value": "pps"},
+        {"label": "VS", "value": "vs"},
     ]
 
     __tablename__ = "tl_snapshot"
