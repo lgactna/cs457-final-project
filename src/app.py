@@ -5,6 +5,9 @@ import dash
 from dash import html
 import dash_bootstrap_components as dbc
 
+import db_con
+import models
+
 logging.basicConfig(
     handlers=[
         logging.FileHandler("app.log", mode="a", encoding="utf-8"),
@@ -16,6 +19,12 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# This has to be done before the pages are registered, so we have to do this up here
+logger.info("starting connection to DB and making tables")
+# Note that echo=True also echos logging.INFO level messages to the log.
+db_con.init_engine("sqlite:///tetrio.db", echo=False)
+models.create_tables(db_con.engine)
 
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP], use_pages=True)
 
@@ -73,5 +82,5 @@ content = html.Div(dash.page_container, style=CONTENT_STYLE)
 
 app.layout = html.Div([sidebar, content])
 
-if __name__ == "__main__":
+if __name__ == "__main__":    
     app.run_server(debug=True)

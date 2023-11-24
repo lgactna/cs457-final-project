@@ -1,7 +1,7 @@
 import dash
 from dash import html
 
-dash.register_page(__name__, name="Tetra League statistics", group="Player statistics")
+dash.register_page(__name__, name="Tetra League matches", group="Player statistics")
 
 layout = html.Div(
     [

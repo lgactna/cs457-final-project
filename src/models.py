@@ -132,6 +132,19 @@ class LeagueSnapshot(Base):
     """
     A snapshot of a player's Tetra League statistics at a point in time.
     """
+    # These are hardcoded and represent the statistic-related options in LeagueSnapshot.
+    # The "value" is the name of the attribute as it appears in the LeagueSnapshot
+    # definition. This is primarily used in handling Plotly stuff.
+    DROPDOWN_OPTIONS = [
+        {'label': "Games played", "value": "tl_games_played"},
+        {'label': "Games won", "value": "tl_games_won"},
+        {'label': 'TR', "value": "rating"},
+        {'label': 'Glicko', "value": "glicko"},
+        {'label': 'RD', "value": "rd"},
+        {'label': 'APM', "value": "apm"},
+        {'label': 'PPS', "value": "pps"},
+        {'label': 'VS', "value": "vs"},
+    ]
 
     __tablename__ = "tl_snapshot"
 
@@ -141,7 +154,7 @@ class LeagueSnapshot(Base):
     tl_games_played: Mapped[int] = mapped_column(sqlalchemy.Integer())
     tl_games_won: Mapped[int] = mapped_column(sqlalchemy.Integer())
     rating: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
-    rank: Mapped[str] = mapped_column(sqlalchemy.String(1))
+    rank: Mapped[str] = mapped_column(sqlalchemy.String(10))
     standing: Mapped[int] = mapped_column(sqlalchemy.Integer())
     glicko: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
     rd: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
