@@ -32,7 +32,7 @@ def get_player(uuid: str) -> Union[models.Player, None]:
 
     If the player does not exist, returns None.
     """
-    with session_maker() as session:
-        return session.execute(
+    with session_maker.begin() as session:
+        return session.scalar(
             sqlalchemy.select(models.Player).where(models.Player.id == uuid)
-        ).one_or_none()
+        )
