@@ -84,8 +84,9 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
     """
     Get Tetra League snapshots for every ranked player.
 
-    Explicitly an empty dictionary for `data` if necessary. During development,
-    you should aim to use a stored copy of the global data where needed.
+    Explicitly specify an empty dictionary for `data` if necessary. During 
+    development, you should aim to use a stored copy of the global data where 
+    needed.
     """
     if not data:
         r = requests.get(f"{API}/users/lists/league/all")
@@ -194,7 +195,7 @@ def get_player_matches(user: str) -> Union[list[models.LeagueMatch], None]:
 
     # Start iterating over each game
     matches: list[models.LeagueMatch] = []
-    for match_data in data["records"]:
+    for match_data in data['data']["records"]:
         matches.append(match_from_game(match_data))
 
     return matches
@@ -216,7 +217,7 @@ def parse_record(game: dict, player_obj: models.Player) -> models.PlayerGame:
 
     return models.PlayerGame(
         gamemode=gamemode,
-        replay_id=game["endcontext"]["replayid"],
+        replay_id=game["replayid"],
         ts=parser.parse(game["ts"]),
         value=value,
         player=player_obj,
@@ -237,7 +238,7 @@ def get_player_recent(user: str) -> Union[list[models.PlayerGame], None]:
             return None
         user = u
 
-    r = requests.get(f"{API}/streams/league_userrecent_{user}")
+    r = requests.get(f"{API}/streams/any_userrecent_{user}")
     data = r.json()
 
     if not data["success"]:
@@ -306,7 +307,7 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     if not data["success"]:
         return None
 
-    for gamemode_record in data["records"].values():
+    for gamemode_record in data['data']["records"].values():
         game = parse_record(gamemode_record["record"], player_obj)
         game.rank = gamemode_record["rank"]
         game.is_record = True
