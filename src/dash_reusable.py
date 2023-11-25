@@ -20,41 +20,48 @@ def generate_player_card(
     else:
         standing = html.Div(f"#{tl_snapshot.standing}")
 
-    # dear god lol
-    tl_card_body = dbc.Row(
-        [
-            dbc.Col(
-                [
-                    html.Div(
-                        html.Img(
-                            id="player-rank-img",
-                            src=f"https://tetr.io/res/league-ranks/{tl_snapshot.rank}.png",
-                            width=40,
-                            height=40,
-                        )
-                    ),
-                    standing,
-                    html.Div(f"{tl_snapshot.rating:.2f} TR"),
-                    html.Div(
-                        f"R: {tl_snapshot.glicko:.1f} \u00b1 {tl_snapshot.rd:.0f}",
-                        style={"font-size": "0.75em"},
-                    ),
-                ],
-                width=6,
-            ),
-            dbc.Col(
-                html.Div(
+    if tl_snapshot.glicko is None:
+        tl_card_body = html.Div("No data available!")
+    else:
+        tl_card_body = dbc.Row(
+            [
+                dbc.Col(
                     [
-                        html.Div(f"PPS: {tl_snapshot.pps:.2f}"),
-                        html.Div(f"APM: {tl_snapshot.apm:.2f}"),
-                        html.Div(f"VS: {tl_snapshot.vs:.2f}"),
+                        html.Div(
+                            html.Img(
+                                id="player-rank-img",
+                                src=f"https://tetr.io/res/league-ranks/{tl_snapshot.rank}.png",
+                                width=40,
+                                height=40,
+                            )
+                        ),
+                        standing,
+                        html.Div(f"{tl_snapshot.rating:.2f} TR"),
+                        html.Div(
+                            f"R: {tl_snapshot.glicko:.1f} \u00b1 {tl_snapshot.rd:.0f}",
+                            style={"font-size": "0.75em"},
+                        ),
                     ],
-                    style={"text-align": "center"},
+                    width=6,
                 ),
-                width=6,
-            ),
-        ]
-    )
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.Div(f"PPS: {tl_snapshot.pps:.2f}"),
+                            html.Div(f"APM: {tl_snapshot.apm:.2f}"),
+                            html.Div(f"VS: {tl_snapshot.vs:.2f}"),
+                        ],
+                        style={"text-align": "center"},
+                    ),
+                    width=6,
+                ),
+            ]
+        )
+
+    if tl_snapshot.tl_games_played != 0:
+        winrate = f"{(tl_snapshot.tl_games_won/tl_snapshot.tl_games_played)*100:.2f}"
+    else:
+        winrate = "---"
 
     return dbc.Row(
         [
@@ -102,7 +109,7 @@ def generate_player_card(
                                         f"TL games: {tl_snapshot.tl_games_played}"
                                     ),
                                     html.Div(
-                                        f"TL winrate: {(tl_snapshot.tl_games_won/tl_snapshot.tl_games_played)*100:.2f}%"
+                                        f"TL winrate: {winrate}%"
                                     ),
                                 ],
                             ),
