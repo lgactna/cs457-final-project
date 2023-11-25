@@ -16,7 +16,7 @@ def generate_player_card(
     Generate a "player card" element from a player and TL snapshot.
     """
     if tl_snapshot.standing == -1:
-        standing = html.div("(unranked)")
+        standing = html.Div("(unranked)")
     else:
         standing = html.Div(f"#{tl_snapshot.standing}")
 
