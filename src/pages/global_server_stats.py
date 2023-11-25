@@ -40,6 +40,7 @@ layout = html.Div(
                             options=dropdown_options,
                             value=dropdown_options[0]["value"],
                             id="dropdown-statistic",
+                            clearable=False
                         ),
                     ],
                     lg=6,
