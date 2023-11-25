@@ -15,25 +15,6 @@ dash.register_page(__name__, name="Improvement", group="Player statistics")
 OPTION_NONE = "(none)"
 GAMEMODE_OPTIONS = ("40l", "blitz")
 
-# Start by getting all players for which we have games for; derive them from the
-# player snapshot table (note this assumes that if we have a game for a player,
-# we also have a snapshot for them -- a true statement in this application)
-with db_con.session_maker.begin() as session:
-    result = session.execute(
-        sqlalchemy.select(
-            models.PlayerGame.player_id,
-            sqlalchemy.func.group_concat(models.PlayerSnapshot.username.distinct()),
-        )
-        .join(
-            models.PlayerSnapshot,
-            models.PlayerSnapshot.player_id == models.PlayerGame.player_id,
-        )
-        .group_by(models.PlayerGame.player_id)
-    ).all()
-    available_players = [
-        {"label": f"{usernames} ({uuid})", "value": uuid} for uuid, usernames in result
-    ]
-
 layout = html.Div(
     [
         html.H1("Singleplayer improvement"),
@@ -43,7 +24,7 @@ layout = html.Div(
                     [
                         html.P("Select a player:"),
                         dcc.Dropdown(
-                            options=available_players,
+                            options=[OPTION_NONE],
                             value=OPTION_NONE,
                             id="dropdown-players",
                             clearable=False,
@@ -66,8 +47,44 @@ layout = html.Div(
             ]
         ),
         html.Div(id="output-improvement"),
+        html.Div(id="dummy"),
     ]
 )
+
+
+# There are two generally accepted methods of forcing a layout update on page
+# load -- either you can set the layout to be evaluated as a function that returns
+# a layout (so that the entire layout is regenerated each time as needed), or
+# you can create a callback with a "dummy" input hooked up to something that
+# will never do anything, and discard the input.
+#
+# Because there is a *possibility* that this takes an extended amount of time,
+# I opted to take the approach of building blank callbacks.
+@callback(Output("dropdown-players", "options"), Input("dummy", "children"))
+def update_player_options(_) -> list[dict[str, str]]:
+    # Start by getting all players for which we have games for; derive them from the
+    # player snapshot table (note this assumes that if we have a game for a player,
+    # we also have a snapshot for them -- a true statement in this application)
+    with db_con.session_maker.begin() as session:
+        result = session.execute(
+            sqlalchemy.select(
+                models.PlayerGame.player_id,
+                sqlalchemy.func.group_concat(models.PlayerSnapshot.username.distinct()),
+            )
+            .join(
+                models.PlayerSnapshot,
+                models.PlayerSnapshot.player_id == models.PlayerGame.player_id,
+            )
+            .group_by(models.PlayerGame.player_id)
+        ).all()
+        available_players = [
+            {"label": f"{usernames} ({uuid})", "value": uuid}
+            for uuid, usernames in result
+        ]
+
+    # Also tack on the option of "nothing"
+    available_players.append({"label": OPTION_NONE, "value": OPTION_NONE})
+    return available_players
 
 
 @callback(

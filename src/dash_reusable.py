@@ -108,9 +108,7 @@ def generate_player_card(
                                     html.Div(
                                         f"TL games: {tl_snapshot.tl_games_played}"
                                     ),
-                                    html.Div(
-                                        f"TL winrate: {winrate}%"
-                                    ),
+                                    html.Div(f"TL winrate: {winrate}%"),
                                 ],
                             ),
                         ],
