@@ -21,7 +21,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # This has to be done before the pages are registered, so we have to do this up here
-logger.info("starting connection to DB and making tables")
+logger.info("starting connection to DB and making tables if they don't already exist")
 # Note that echo=True also echos logging.INFO level messages to the log.
 db_con.init_engine("sqlite:///tetrio.db", echo=False)
 models.create_tables(db_con.engine)

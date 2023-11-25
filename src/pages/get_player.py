@@ -37,13 +37,12 @@ layout = html.Div(
                     [dbc.Button("Get user data", id="btn-get-data")], width=12, lg=6
                 ),
             ],
-            style={"margin-bottom": "10px"}
+            style={"margin-bottom": "10px"},
         ),
-        dcc.Loading(
-            html.Div(id="output-lookup")
-        )
+        dcc.Loading(html.Div(id="output-lookup")),
     ]
 )
+
 
 def generate_player_card(
     player_snapshot: models.PlayerSnapshot, tl_snapshot: models.LeagueSnapshot
@@ -94,7 +93,9 @@ def generate_player_card(
                     html.Div(f"{player_snapshot.xp} XP"),
                     html.Div(f"{player_snapshot.games_played} games played"),
                     html.Div(f"{player_snapshot.games_won} games won"),
-                    html.Div(f"Time played: {str(datetime.timedelta(seconds=player_snapshot.game_time))}"),
+                    html.Div(
+                        f"Time played: {str(datetime.timedelta(seconds=player_snapshot.game_time))}"
+                    ),
                 ],
                 width=12,
                 lg=4,
@@ -112,7 +113,11 @@ def generate_player_card(
                 ],
                 width=12,
                 xl=4,
-                style={"margin-bottom": "10px", "text-align": "center", "align-self": "stretch"},
+                style={
+                    "margin-bottom": "10px",
+                    "text-align": "center",
+                    "align-self": "stretch",
+                },
             ),
             dbc.Col(
                 [
@@ -122,8 +127,12 @@ def generate_player_card(
                             dbc.CardBody(
                                 [
                                     html.Div(f"TL wins: {tl_snapshot.tl_games_won}"),
-                                    html.Div(f"TL games: {tl_snapshot.tl_games_played}"),
-                                    html.Div(f"TL winrate: {(tl_snapshot.tl_games_won/tl_snapshot.tl_games_played)*100:.2f}%"),
+                                    html.Div(
+                                        f"TL games: {tl_snapshot.tl_games_played}"
+                                    ),
+                                    html.Div(
+                                        f"TL winrate: {(tl_snapshot.tl_games_won/tl_snapshot.tl_games_played)*100:.2f}%"
+                                    ),
                                 ],
                             ),
                         ],
@@ -132,13 +141,15 @@ def generate_player_card(
                 ],
                 width=12,
                 xl=4,
-                style={"margin-bottom": "10px", "text-align": "center", "align-self": "stretch"},
+                style={
+                    "margin-bottom": "10px",
+                    "text-align": "center",
+                    "align-self": "stretch",
+                },
             ),
         ],
         style={"align-items": "center"},
     )
-
-
 
 
 @callback(
@@ -162,7 +173,8 @@ def get_player_data(_, user: str) -> html.Div:
         record_games = tetrio_api.get_player_records(uuid)
         matches = tetrio_api.get_player_matches(uuid)
 
-        logger.debug("")
+        # Also implicitly create the player
+        tetrio_api.get_player_by_uuid(uuid)
 
         # Merge the recent games, preferring records over recents if they conflict
         all_games = db_con.merge_records(record_games, recent_games)
@@ -189,35 +201,23 @@ def get_player_data(_, user: str) -> html.Div:
         if len(df) == 0:
             tables.append(html.Em("No new data!"))
             continue
-        tables.append(dash_table.DataTable(
-            df.to_dict("records"),
-            [{"name": i, "id": i} for i in df.columns],
-            filter_action="native",
-            sort_action="native",
-            sort_mode="single",
-            page_action="native",
-            page_current=0,
-            page_size=5,
-        ))
-    
+        tables.append(
+            dash_table.DataTable(
+                df.to_dict("records"),
+                [{"name": i, "id": i} for i in df.columns],
+                filter_action="native",
+                sort_action="native",
+                sort_mode="single",
+                page_action="native",
+                page_current=0,
+                page_size=5,
+            )
+        )
+
     return html.Div(
         [
             player_card,
-            dbc.Row(
-                dbc.Col(
-                    [
-                        html.H3("New singleplayer scores"),
-                        tables[0]
-                    ]
-                )
-            ),
-            dbc.Row(
-                dbc.Col(
-                    [
-                        html.H3("New matches"),
-                        tables[1]
-                    ]
-                )
-            )
+            dbc.Row(dbc.Col([html.H3("New singleplayer scores"), tables[0]])),
+            dbc.Row(dbc.Col([html.H3("New matches"), tables[1]])),
         ]
     )
