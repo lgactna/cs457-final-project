@@ -15,20 +15,6 @@ import util
 dash.register_page(__name__, name="Current rankwise stats", group="Global statistics")
 
 OPTION_NONE = "(none)"
-
-# Calculate available options for the rank and timestamp dropdowns
-with db_con.session_maker.begin() as session:
-    available_times = db_con.get_global_timestamps()
-    time_options = [
-        {"label": val.strftime(util.STD_TIME_FMT), "value": val}
-        for val in available_times
-    ]
-
-    rank_options = list(
-        session.scalars(sqlalchemy.select(models.LeagueSnapshot.rank).distinct())
-    )
-
-rank_options.append(OPTION_NONE)
 dropdown_options = models.LeagueSnapshot.DROPDOWN_OPTIONS
 
 layout = html.Div(
@@ -49,7 +35,7 @@ layout = html.Div(
                     [
                         html.P("Rank filter"),
                         dcc.Dropdown(
-                            options=rank_options,
+                            options=[OPTION_NONE],
                             value=OPTION_NONE,
                             id="dropdown-rank-filter",
                             clearable=False,
@@ -61,8 +47,8 @@ layout = html.Div(
                     [
                         html.P("Timestamp"),
                         dcc.Dropdown(
-                            options=time_options,
-                            value=time_options[0]["value"],
+                            options=[OPTION_NONE],
+                            value=OPTION_NONE,
                             id="dropdown-timestamp",
                             clearable=False,
                         ),
@@ -83,9 +69,32 @@ layout = html.Div(
                 ),
             ]
         ),
+        html.Div(id="dummy-global-tl-stats")
     ]
 )
 
+@callback(
+    Output("dropdown-rank-filter", "options"), 
+    Output("dropdown-timestamp", "options"), 
+    Input("dummy-global-tl-stats", "children")
+)
+def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    # Calculate available options for the rank and timestamp dropdowns
+    with db_con.session_maker.begin() as session:
+        available_times = db_con.get_global_timestamps()
+        time_options = [
+            {"label": val.strftime(util.STD_TIME_FMT), "value": val}
+            for val in available_times
+        ]
+
+        rank_options = list(
+            session.scalars(sqlalchemy.select(models.LeagueSnapshot.rank).distinct())
+        )
+
+    rank_options.append(OPTION_NONE)
+    
+    return rank_options, time_options
+    
 
 @callback(
     Output("graph-distribution", "figure"),
@@ -96,6 +105,11 @@ layout = html.Div(
 def update_output(
     rank_filter: str, timestamp: str, statistic: str
 ) -> plotly.graph_objs.Figure:
+    # If no timestamp available, you can stop right there
+    if timestamp == OPTION_NONE:
+        df = pd.DataFrame()
+        return px.histogram(df)
+    
     # Construct query conditionally based on what's been selected
     queries = []
     if rank_filter != OPTION_NONE:

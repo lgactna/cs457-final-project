@@ -26,7 +26,7 @@ layout = html.Div(
                         dcc.Dropdown(
                             options=[OPTION_NONE],
                             value=OPTION_NONE,
-                            id="dropdown-players",
+                            id="dropdown-players-improvement",
                             clearable=False,
                         ),
                     ],
@@ -38,7 +38,7 @@ layout = html.Div(
                         dcc.Dropdown(
                             options=GAMEMODE_OPTIONS,
                             value=GAMEMODE_OPTIONS[0],
-                            id="dropdown-gamemode",
+                            id="dropdown-gamemode-improvement",
                             clearable=False,
                         ),
                     ],
@@ -47,7 +47,7 @@ layout = html.Div(
             ]
         ),
         html.Div(id="output-improvement"),
-        html.Div(id="dummy"),
+        html.Div(id="dummy-improvement"),
     ]
 )
 
@@ -60,7 +60,10 @@ layout = html.Div(
 #
 # Because there is a *possibility* that this takes an extended amount of time,
 # I opted to take the approach of building blank callbacks.
-@callback(Output("dropdown-players", "options"), Input("dummy", "children"))
+@callback(
+    Output("dropdown-players-improvement", "options"), 
+    Input("dummy-improvement", "children")
+)
 def update_player_options(_) -> list[dict[str, str]]:
     # Start by getting all players for which we have games for; derive them from the
     # player snapshot table (note this assumes that if we have a game for a player,
@@ -89,8 +92,8 @@ def update_player_options(_) -> list[dict[str, str]]:
 
 @callback(
     Output("output-improvement", "children"),
-    Input("dropdown-players", "value"),
-    Input("dropdown-gamemode", "value"),
+    Input("dropdown-players-improvement", "value"),
+    Input("dropdown-gamemode-improvement", "value"),
 )
 def update_output(uuid: str, gamemode: str) -> html.Div:
     if uuid == OPTION_NONE:

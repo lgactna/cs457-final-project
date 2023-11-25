@@ -152,6 +152,7 @@ def get_global_data(
         snapshots.append(
             models.LeagueSnapshot(
                 ts=ts,
+                username=user['username'],
                 tl_games_played=tl_data["gamesplayed"],
                 tl_games_won=tl_data["gameswon"],
                 rating=tl_data["rating"],
@@ -457,6 +458,7 @@ def get_player_snapshots(
     tl_data = p_data["league"]
     tl_snapshot = models.LeagueSnapshot(
         ts=datetime.datetime.now(datetime.timezone.utc),
+        username=p_data["username"],
         tl_games_played=tl_data["gamesplayed"],
         tl_games_won=tl_data["gameswon"],
         rating=tl_data["rating"],

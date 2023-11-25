@@ -15,15 +15,6 @@ import util
 
 dash.register_page(__name__, name="Historical averages", group="Global statistics")
 
-OPTION_NONE = "(none)"
-
-# Calculate available options for the rank and timestamp dropdowns
-with db_con.session_maker.begin() as session:
-    rank_options = list(
-        session.scalars(sqlalchemy.select(models.LeagueSnapshot.rank).distinct())
-    )
-
-rank_options.append(OPTION_NONE)
 dropdown_options = models.LeagueSnapshot.DROPDOWN_OPTIONS
 
 layout = html.Div(
@@ -73,6 +64,11 @@ def update_output(statistic: str) -> plotly.graph_objs.Figure:
             .where(models.LeagueSnapshot.is_global)
             .group_by(models.LeagueSnapshot.ts, models.LeagueSnapshot.rank)
         ).all()
+        
+        if not result:
+            # In the case there's no data.
+            df = pd.DataFrame()
+            return px.line(df)
 
         df = pd.DataFrame(result, columns=["timestamp", "rank", "average"])
         # Note that we have to generate this in the context of the session; else,

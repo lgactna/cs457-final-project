@@ -58,9 +58,9 @@ def get_player_data(_, user: str) -> html.Div:
             logger.info(
                 f"{user} is not an ID, selecting first snapshot with that username"
             )
-            snapshot: models.PlayerSnapshot = session.scalar(
-                sqlalchemy.select(models.PlayerSnapshot).where(
-                    models.PlayerSnapshot.username == user
+            snapshot: models.LeagueSnapshot = session.scalar(
+                sqlalchemy.select(models.LeagueSnapshot).where(
+                    models.LeagueSnapshot.username == user
                 )
             )
 

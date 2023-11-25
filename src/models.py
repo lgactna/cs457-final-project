@@ -149,6 +149,7 @@ class LeagueSnapshot(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
+    username: Mapped[str] = mapped_column(sqlalchemy.String(50))
     # Whether or not this record was pulled from a scrape of the full TL
     # leaderboards. If set to False, this indicates that it was the result
     # of taking an individual player's snapshot, and should be excluded from

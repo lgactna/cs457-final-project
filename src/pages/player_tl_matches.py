@@ -12,20 +12,6 @@ dash.register_page(__name__, name="Tetra League matches", group="Player statisti
 
 OPTION_NONE = "(none)"
 
-# Start by getting all players for which we have matches for
-with db_con.session_maker.begin() as session:
-    result = session.execute(
-        sqlalchemy.select(
-            models.LeagueMatchPlayer.player_id,
-            sqlalchemy.func.group_concat(models.LeagueMatchPlayer.username.distinct()),
-        ).group_by(models.LeagueMatchPlayer.player_id)
-    ).all()
-    available_players = [
-        {"label": f"{usernames} ({uuid})", "value": uuid} for uuid, usernames in result
-    ]
-
-available_players.append({"label": OPTION_NONE, "value": OPTION_NONE})
-
 layout = html.Div(
     [
         dbc.Row(
@@ -35,9 +21,9 @@ layout = html.Div(
                         html.H1("Player match history"),
                         html.P("Select a player:"),
                         dcc.Dropdown(
-                            options=available_players,
+                            options=[OPTION_NONE],
                             value=OPTION_NONE,
-                            id="dropdown-players",
+                            id="dropdown-players-matches",
                             clearable=False,
                         ),
                     ],
@@ -45,14 +31,35 @@ layout = html.Div(
                 ),
                 dbc.Col([html.Div(id="output-tl-matches")], width=12),
             ]
-        )
+        ),
+        html.Div(id="dummy-matches")
     ]
 )
 
+@callback(
+    Output("dropdown-players-matches", "options"), 
+    Input("dummy-matches", "children"),
+)
+def update_player_options(_) -> list[dict[str, str]]:
+    # Start by getting all players for which we have matches for
+    with db_con.session_maker.begin() as session:
+        result = session.execute(
+            sqlalchemy.select(
+                models.LeagueMatchPlayer.player_id,
+                sqlalchemy.func.group_concat(models.LeagueMatchPlayer.username.distinct()),
+            ).group_by(models.LeagueMatchPlayer.player_id)
+        ).all()
+        available_players = [
+            {"label": f"{usernames} ({uuid})", "value": uuid} for uuid, usernames in result
+        ]
+
+    # Also tack on the option of "nothing"
+    available_players.append({"label": OPTION_NONE, "value": OPTION_NONE})
+    return available_players
 
 @callback(
     Output("output-tl-matches", "children"),
-    Input("dropdown-players", "value"),
+    Input("dropdown-players-matches", "value"),
 )
 def update_output(uuid: str) -> html.Div:
     if uuid == OPTION_NONE:
