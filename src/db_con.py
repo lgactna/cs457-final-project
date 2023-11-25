@@ -11,7 +11,9 @@ specific features (e.g. Postgres's "upsert", i.e. insert if not present or updat
 at the cost of some performance -- for our scale, this isn't too impactful
 """
 from typing import Optional, Union
+from pathlib import Path
 import logging
+
 
 import sqlalchemy
 
@@ -104,3 +106,16 @@ def merge_records(
             lhs.append(record)
 
     return lhs
+
+def regenerate_global_data(data_dir: Path):
+    """
+    Regenerate the global data captures from a directory of JSON dumps.
+    
+    If the associated timestamp is already present in the database, this does
+    nothing.
+    """
+
+# TODO: Add function here loading data from global_data
+
+# TODO: Make get_global_stats.py just save the entirety of the response
+# to /global_data

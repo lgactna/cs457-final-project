@@ -1,9 +1,12 @@
+from typing import Union
 import datetime
 
-from dash import html
+from dash import html, dash_table
 import dash_bootstrap_components as dbc
+import pandas as pd
 
 import models
+import util
 
 
 def generate_player_card(
@@ -12,6 +15,11 @@ def generate_player_card(
     """
     Generate a "player card" element from a player and TL snapshot.
     """
+    if tl_snapshot.standing == -1:
+        standing = html.div("(unranked)")
+    else:
+        standing = html.Div(f"#{tl_snapshot.standing}")
+    
     # dear god lol
     tl_card_body = dbc.Row(
         [
@@ -25,6 +33,7 @@ def generate_player_card(
                             height=40,
                         )
                     ),
+                    standing,
                     html.Div(f"{tl_snapshot.rating:.2f} TR"),
                     html.Div(
                         f"R: {tl_snapshot.glicko:.1f} \u00b1 {tl_snapshot.rd:.0f}",
@@ -111,4 +120,196 @@ def generate_player_card(
             ),
         ],
         style={"align-items": "center"},
+    )
+
+
+def generate_match_table(
+    matches: list[models.LeagueMatch], focus_player: str
+) -> Union[dash_table.DataTable, html.Em]:
+    """
+    Generate a DataTable from a set of matches.
+
+    `focus_player` is used to determine which player should always be on the left.
+
+    The table format is as follows:
+        - player_1,
+        - pts,
+        - pts,
+        - player_2,
+        - timestamp,
+        - pps (p1 | p2),
+        - apm (p1 | p2),
+        - vs (p1 | p2)
+
+    If there are no matches, this simply returns a HTML element with some text.
+    """
+    if len(matches) == 0:
+        return html.Em("No new data!")
+
+    # We'll form a dataframe from this
+    match_rows: list[dict] = []
+
+    for match in matches:
+        # First, assert that there are exactly two players for the match
+        if len(match.tl_players) != 2:
+            raise ValueError("TL match not comprised of two players")
+
+        player_1: dict[str, str] = {}
+        player_2: dict[str, str] = {}
+
+        # Then, calculate statistics for each
+        for player in match.tl_players:
+            player_data = {}
+            for field in ("pps", "apm", "vs"):
+                data = [getattr(round, field) for round in player.rounds]
+                player_data[field] = f"{sum(data)/len(data):.2f}"
+            player_data["points"] = player.points
+            player_data["username"] = player.username
+
+            if player.username == focus_player or player.player_id == focus_player:
+                player_1 = player_data
+            else:
+                player_2 = player_data
+
+        # They both better be filled out here
+        assert player_1 and player_2
+
+        # Now create the actual row entry itself
+        match_rows.append(
+            {
+                "player_1": player_1["username"],
+                "p1_pts": player_1["points"],
+                "p2_pts": player_2["points"],
+                "player_2": player_2["username"],
+                "timestamp": match.ts.strftime(util.STD_TIME_FMT),
+                "pps": f"({player_1['pps']}|{player_2['pps']})",
+                "apm": f"({player_1['apm']}|{player_2['apm']})",
+                "vs": f"({player_1['vs']}|{player_2['vs']})",
+            }
+        )
+
+    # Finally, from these, create a dataframe
+    df = pd.DataFrame(match_rows)
+
+    # And create the DataTable (pagination set at 5 for now)
+    return dash_table.DataTable(
+        df.to_dict("records"),
+        [{"name": i, "id": i} for i in df.columns],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="single",
+        page_action="native",
+        page_current=0,
+        page_size=5,
+    )
+
+
+def generate_game_table(
+    games: list[models.PlayerGame],
+) -> Union[dash_table.DataTable, html.Em]:
+    """
+    Generate a DataTable from a set of singleplayer games.
+
+    This also handles the conversion of milliseconds to seconds for the case of
+    40L games.
+
+    The table format is as follows:
+    - gamemode
+    - value
+    - timestamp
+    - is_player_best
+    """
+    if len(games) == 0:
+        return html.Em("No new data!")
+
+    game_data: list[dict] = []
+    for game in games:
+        value = game.value
+        if game.gamemode == "40l":
+            value = value / 1000
+
+        game_data.append(
+            # Just assuming the most recent username is their current --
+            # this does have the interesting opportunity of allowing usernames
+            # to be "tracked" and reflected over time, but we're ignoring that
+            # for this project
+            {
+                "gamemode": game.gamemode,
+                "value": value,
+                "timestamp": game.ts.strftime(util.STD_TIME_FMT),
+                "is_player_best": game.is_record,
+            }
+        )
+
+    # Finally, from these, create a dataframe
+    df = pd.DataFrame(game_data)
+
+    # And create the DataTable (pagination set at 5 for now)
+    return dash_table.DataTable(
+        df.to_dict("records"),
+        [{"name": i, "id": i} for i in df.columns],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="single",
+        page_action="native",
+        page_current=0,
+        page_size=5,
+    )
+
+
+def generate_round_table(
+    matches: list[models.LeagueMatch], focus_player: str
+) -> Union[dash_table.DataTable, html.Em]:
+    """
+    Generate a table of rounds, breaking matches up into their individual rounds.
+
+    The table format is as follows:
+        - player,
+        - timestamp,
+        - pps
+        - apm
+        - vs
+
+    If there are no matches, this simply returns a HTML element with some text.
+    """
+    if len(matches) == 0:
+        return html.Em("No new data!")
+
+    # We'll form a dataframe from this
+    round_rows: list[dict] = []
+
+    for match in matches:
+        # First, assert that there are exactly two players for the match
+        if len(match.tl_players) != 2:
+            raise ValueError("TL match not comprised of two players")
+
+        # Only take the "focus" player's statistics
+        for player in match.tl_players:
+            if player.username != focus_player and player.player_id != focus_player:
+                continue
+
+            for round in player.rounds:
+                round_rows.append(
+                    {
+                        "player": round.tl_round_player.username,
+                        "timestamp": round.tl_round_player.tl_match.ts,
+                        "pps": round.pps,
+                        "apm": round.apm,
+                        "vs": round.vs,
+                    }
+                )
+
+    # Finally, from these, create a dataframe
+    df = pd.DataFrame(round_rows)
+
+    # And create the DataTable (pagination set at 5 for now)
+    return dash_table.DataTable(
+        df.to_dict("records"),
+        [{"name": i, "id": i} for i in df.columns],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="single",
+        page_action="native",
+        page_current=0,
+        page_size=5,
     )

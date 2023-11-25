@@ -80,6 +80,9 @@ def get_id_from_username(username: str) -> Union[str, None]:
 
     :param username: The standard username to lookup.
     """
+    # Always convert to lowercase.
+    username = username.lower()
+    
     r = requests.get(f"{API}/users/{username}")
     data = r.json()
 
@@ -124,6 +127,7 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
                 vs=tl_data["vs"],
                 decaying=tl_data["decaying"],
                 player_id=user["_id"],
+                is_global=True
             )
         )
 
@@ -322,6 +326,11 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
         return None
 
     for gamemode_record in data["data"]["records"].values():
+        if not gamemode_record['record']: 
+            # The API always returns a key for 40L and Blitz, even if a player
+            # has never played that mode
+            continue
+        
         game_obj: models.PlayerGame = parse_record(gamemode_record["record"], user)
         game_obj.rank = gamemode_record["rank"]
         game_obj.is_record = True

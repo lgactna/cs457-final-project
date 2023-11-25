@@ -24,7 +24,7 @@ with db_con.session_maker.begin() as session:
         session.scalars(sqlalchemy.select(models.LeagueSnapshot.ts).distinct())
     )
     time_options = [
-        {"label": val.strftime("%Y-%m-%d %H:%M:%S"), "value": val}
+        {"label": val.strftime(util.STD_TIME_FMT), "value": val}
         for val in available_times
     ]
 

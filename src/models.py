@@ -149,11 +149,18 @@ class LeagueSnapshot(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     ts: Mapped[datetime.datetime] = mapped_column(sqlalchemy.DateTime())
+    # Whether or not this record was pulled from a scrape of the full TL 
+    # leaderboards. If set to False, this indicates that it was the result
+    # of taking an individual player's snapshot, and should be excluded from
+    # global statistic calculations.
+    is_global: Mapped[bool] = mapped_column(sqlalchemy.Boolean(), default=False)
 
     tl_games_played: Mapped[int] = mapped_column(sqlalchemy.Integer())
     tl_games_won: Mapped[int] = mapped_column(sqlalchemy.Integer())
     rating: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
+    # "rank" here refers to X, U, SS, etc
     rank: Mapped[str] = mapped_column(sqlalchemy.String(10))
+    # "standing" is the actual numeric position of this player on the leaderboard
     standing: Mapped[int] = mapped_column(sqlalchemy.Integer())
     glicko: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)
     rd: Mapped[Optional[float]] = mapped_column(sqlalchemy.Float(), nullable=True)

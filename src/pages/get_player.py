@@ -81,35 +81,17 @@ def get_player_data(_, user: str) -> html.Div:
         session.add_all(new_matches)
 
         # With the data, generate elements as needed
-        games_df = pd.DataFrame([models.todict(obj) for obj in new_games])
-        matches_df = pd.DataFrame([models.todict(obj) for obj in new_matches])
+        game_table = dash_reusable.generate_game_table(new_games)
+        matches_table = dash_reusable.generate_match_table(new_matches, uuid)
         player_card = dash_reusable.generate_player_card(player_snapshot, tl_snapshot)
 
     # At this point, it's safe to exit the session since the data's already been
-    # copied over to a dataframe
-
-    tables = []
-    for df in (games_df, matches_df):
-        if len(df) == 0:
-            tables.append(html.Em("No new data!"))
-            continue
-        tables.append(
-            dash_table.DataTable(
-                df.to_dict("records"),
-                [{"name": i, "id": i} for i in df.columns],
-                filter_action="native",
-                sort_action="native",
-                sort_mode="single",
-                page_action="native",
-                page_current=0,
-                page_size=5,
-            )
-        )
+    # copied
 
     return html.Div(
         [
             player_card,
-            dbc.Row(dbc.Col([html.H3("New singleplayer scores"), tables[0]])),
-            dbc.Row(dbc.Col([html.H3("New matches"), tables[1]])),
+            dbc.Row(dbc.Col([html.H3("New singleplayer scores"), game_table])),
+            dbc.Row(dbc.Col([html.H3("New matches"), matches_table])),
         ]
     )

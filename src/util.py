@@ -23,6 +23,8 @@ RANK_TO_COLOR = {
     "z": "#828282",
 }
 
+STD_TIME_FMT = "%Y-%m-%d %H:%M:%S"
+
 
 def is_valid_id(data: str) -> bool:
     """
