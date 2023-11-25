@@ -2,6 +2,10 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import html, Input, Output, callback
 
+import db_con
+import tetrio_api
+import util
+
 # This is registered as the homepage with path `/`, else accessing the server
 # yields a 404 until you click on one of the pages
 dash.register_page(
@@ -48,7 +52,11 @@ layout = html.Div(
     prevent_initial_call=True,
 )
 def update_output(_) -> str:
-    import time
-
-    time.sleep(1)
-    return "Update requested."
+    with db_con.session_maker.begin() as session:
+        records = tetrio_api.get_global_data({})
+        session.add_all(records)
+        
+        if records:
+            return f"Added {len(records)} to the database with timestamp {records[0].ts.strftime(util.STD_TIME_FMT)} and saved a backup to disk."
+        else:
+            return "Didn't get any records back, either because the server didn't respond or because there are already records for today."

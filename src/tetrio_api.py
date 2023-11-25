@@ -23,7 +23,7 @@ logger = logging.getLogger(__name__)
 
 API = "https://ch.tetr.io/api"
 
-GLOBAL_DATA_DIR = Path("./global_data")
+GLOBAL_DATA_DIR = Path("./global_data").resolve()
 
 
 def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
@@ -115,18 +115,23 @@ def get_global_data(
         ts = datetime.datetime.now(datetime.timezone.utc)
 
     if not data:
-        # Test if this should be allowed at all
-        trunc_dt = ts.replace(hour=0, minute=0, second=0, microsecond=0)
-        if trunc_dt in db_con.get_global_timestamps():
+        # TODO: Still gotta see if this actually works, stopped testing since
+        # I've hit this like five times already
+        
+        # Test if this should be allowed at all. Note that the timestamps in the
+        # database have no timezone information, so we have to strip that off
+        # as well.
+        ts = ts.replace(hour=0, minute=0, second=0, microsecond=0, tzinfo=None)
+        if ts in db_con.get_global_timestamps():
             logger.error(
                 "There already exists global data for today in the database - returning an empty list!"
             )
             return []
 
         logger.warning(
-            "Generating API request for the global TL dump! Stalling for thirty seconds."
+            "Generating API request for the global TL dump! Stalling for ten seconds."
         )
-        time.sleep(30)
+        time.sleep(10)
         r = requests.get(f"{API}/users/lists/league/all")
         data = r.json()
 
@@ -134,7 +139,7 @@ def get_global_data(
         name = ts.strftime("global-%Y-%m-%d.json")
         target = out_dir / name
         logger.info(f"Writing received JSON as {target}")
-        with open(target) as fp:
+        with open(target, "w+") as fp:
             fp.write(r.text)
 
     snapshots: list[models.LeagueSnapshot] = []
