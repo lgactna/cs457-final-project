@@ -20,6 +20,8 @@ layout = html.Div(
     [
         dbc.Row(
             [
+                html.H1("Player historical statistics"),
+                html.P("Search for a user in the database:"),
                 dbc.Col(
                     [
                         dbc.Input(
