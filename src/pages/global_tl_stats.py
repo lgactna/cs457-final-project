@@ -12,7 +12,7 @@ import models
 import db_con
 import util
 
-dash.register_page(__name__, name="Tetra League statistics", group="Global statistics")
+dash.register_page(__name__, name="Current rankwise stats", group="Global statistics")
 
 OPTION_NONE = "(none)"
 
@@ -37,7 +37,7 @@ layout = html.Div(
             [
                 dbc.Col(
                     [
-                        html.H2("Current player distribution"),
+                        html.H1("Rankwise stat distribution"),
                         dcc.Graph(id="graph-distribution"),
                     ]
                 )

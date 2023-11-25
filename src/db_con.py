@@ -10,7 +10,7 @@ This also includes some various convenience methods to avoid using any database-
 specific features (e.g. Postgres's "upsert", i.e. insert if not present or update)
 at the cost of some performance -- for our scale, this isn't too impactful
 """
-from typing import Optional, Union
+from typing import Union
 
 import datetime
 import logging

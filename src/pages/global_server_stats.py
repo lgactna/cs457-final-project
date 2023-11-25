@@ -13,7 +13,7 @@ import models
 import db_con
 import util
 
-dash.register_page(__name__, name="Rank stats over time", group="Global statistics")
+dash.register_page(__name__, name="Historical averages", group="Global statistics")
 
 OPTION_NONE = "(none)"
 
@@ -29,7 +29,14 @@ dropdown_options = models.LeagueSnapshot.DROPDOWN_OPTIONS
 layout = html.Div(
     [
         dbc.Row(
-            [dbc.Col([html.H2("Stats over time"), dcc.Graph(id="graph-timestats")])]
+            [
+                dbc.Col(
+                    [
+                        html.H1("Global averages over time"),
+                        dcc.Graph(id="graph-timestats"),
+                    ]
+                )
+            ]
         ),
         dbc.Row(
             [

@@ -117,7 +117,7 @@ def get_global_data(
     if not data:
         # TODO: Still gotta see if this actually works, stopped testing since
         # I've hit this like five times already
-        
+
         # Test if this should be allowed at all. Note that the timestamps in the
         # database have no timezone information, so we have to strip that off
         # as well.

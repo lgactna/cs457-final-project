@@ -144,7 +144,7 @@ def generate_match_table(
     If there are no matches, this simply returns a HTML element with some text.
     """
     if len(matches) == 0:
-        return html.Em("No new data!")
+        return html.Em("No data!")
 
     # We'll form a dataframe from this
     match_rows: list[dict] = []
@@ -220,7 +220,7 @@ def generate_game_table(
     - is_player_best
     """
     if len(games) == 0:
-        return html.Em("No new data!")
+        return html.Em("No data!")
 
     game_data: list[dict] = []
     for game in games:
@@ -273,7 +273,7 @@ def generate_round_table(
     If there are no matches, this simply returns a HTML element with some text.
     """
     if len(matches) == 0:
-        return html.Em("No new data!")
+        return html.Em("No data!")
 
     # We'll form a dataframe from this
     round_rows: list[dict] = []
@@ -292,7 +292,9 @@ def generate_round_table(
                 round_rows.append(
                     {
                         "player": round.tl_round_player.username,
-                        "timestamp": round.tl_round_player.tl_match.ts,
+                        "timestamp": round.tl_round_player.tl_match.ts.strftime(
+                            util.STD_TIME_FMT
+                        ),
                         "pps": round.pps,
                         "apm": round.apm,
                         "vs": round.vs,
@@ -301,6 +303,55 @@ def generate_round_table(
 
     # Finally, from these, create a dataframe
     df = pd.DataFrame(round_rows)
+
+    # And create the DataTable (pagination set at 5 for now)
+    return dash_table.DataTable(
+        df.to_dict("records"),
+        [{"name": i, "id": i} for i in df.columns],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="single",
+        page_action="native",
+        page_current=0,
+        page_size=5,
+    )
+
+
+def generate_tl_snapshot_table(
+    snapshots: list[models.LeagueSnapshot],
+) -> Union[dash_table.DataTable, html.Em]:
+    """
+    Generate a table of snapshots.
+
+    The table format is as follows:
+    - Timestamp
+    - Rating
+    - Glicko
+    - Standing
+    - APM
+    - PPS
+    - VS
+    """
+    if len(snapshots) == 0:
+        return html.Em("No data!")
+
+    snapshot_rows: list[dict] = []
+
+    for snapshot in snapshots:
+        snapshot_rows.append(
+            {
+                "timestamp": snapshot.ts.strftime(util.STD_TIME_FMT),
+                "TR": snapshot.rating,
+                "Glicko": f"{snapshot.glicko} \u00b1 {snapshot.rd}",
+                "Standing": snapshot.standing,
+                "APM": snapshot.apm,
+                "PPS": snapshot.pps,
+                "VS": snapshot.vs,
+            }
+        )
+
+    # Finally, from these, create a dataframe
+    df = pd.DataFrame(snapshot_rows)
 
     # And create the DataTable (pagination set at 5 for now)
     return dash_table.DataTable(

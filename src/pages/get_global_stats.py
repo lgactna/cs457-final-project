@@ -55,7 +55,7 @@ def update_output(_) -> str:
     with db_con.session_maker.begin() as session:
         records = tetrio_api.get_global_data({})
         session.add_all(records)
-        
+
         if records:
             return f"Added {len(records)} to the database with timestamp {records[0].ts.strftime(util.STD_TIME_FMT)} and saved a backup to disk."
         else:
