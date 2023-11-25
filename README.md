@@ -1,1 +1,1 @@
-This is a template.
+Simple TETR.IO statistics collector and viewer.
