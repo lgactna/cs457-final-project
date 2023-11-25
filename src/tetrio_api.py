@@ -351,7 +351,7 @@ def get_player_snapshots(
     # player_obj = get_player_by_uuid(p_data["_id"])
 
     p_snapshot = models.PlayerSnapshot(
-        ts=parser.parse(p_data["ts"]),
+        ts=datetime.datetime.now(datetime.timezone.utc),
         username=p_data["username"],
         xp=int(p_data["xp"]),
         games_played=p_data["gamesplayed"],
@@ -365,7 +365,7 @@ def get_player_snapshots(
     # played anything
     tl_data = p_data["league"]
     tl_snapshot = models.LeagueSnapshot(
-        ts=parser.parse(p_data["ts"]),
+        ts=datetime.datetime.now(datetime.timezone.utc),
         tl_games_played=tl_data["gamesplayed"],
         tl_games_won=tl_data["gameswon"],
         rating=tl_data["rating"],
