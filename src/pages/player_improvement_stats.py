@@ -119,7 +119,7 @@ def update_output(uuid: str, gamemode: str) -> html.Div:
     fig = px.scatter(df, x="ts", y="value")
     # Then, add an additional trace by using just the record objects
     df_records = df[df["is_record"] == True]  # noqa: E712
-    fig.add_trace(go.Scatter(x=df_records["ts"], y=df_records["value"]))
+    fig.add_trace(go.Scatter(x=df_records["ts"], y=df_records["value"], name="Records"))
 
     # Finish up
     return html.Div(
