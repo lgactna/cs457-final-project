@@ -69,7 +69,7 @@ def update_player_options(_) -> list[dict[str, str]]:
     # player snapshot table (note this assumes that if we have a game for a player,
     # we also have a snapshot for them -- a true statement in this application)
     with db_con.session_maker.begin() as session:
-        result = session.execute(
+        result: list[tuple[str, str]] = session.execute(
             sqlalchemy.select(
                 models.PlayerGame.player_id,
                 sqlalchemy.func.group_concat(models.PlayerSnapshot.username.distinct()),

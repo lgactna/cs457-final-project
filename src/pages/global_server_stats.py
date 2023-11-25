@@ -55,7 +55,7 @@ layout = html.Div(
 )
 def update_output(statistic: str) -> plotly.graph_objs.Figure:
     with db_con.session_maker.begin() as session:
-        result: tuple[datetime.datetime, str, float] = session.execute(
+        result: list[tuple[datetime.datetime, str, float]] = session.execute(
             sqlalchemy.select(
                 models.LeagueSnapshot.ts,
                 models.LeagueSnapshot.rank,

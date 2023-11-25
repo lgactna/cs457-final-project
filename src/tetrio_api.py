@@ -442,8 +442,11 @@ def get_player_snapshots(
     p_data = data["data"]["user"]
     # player_obj = get_player_by_uuid(p_data["_id"])
 
+    # Force them to both share the same timestamp
+    ts = datetime.datetime.now(datetime.timezone.utc)
+
     p_snapshot = models.PlayerSnapshot(
-        ts=datetime.datetime.now(datetime.timezone.utc),
+        ts=ts,
         username=p_data["username"],
         xp=int(p_data["xp"]),
         games_played=p_data["gamesplayed"],
@@ -457,7 +460,7 @@ def get_player_snapshots(
     # played anything
     tl_data = p_data["league"]
     tl_snapshot = models.LeagueSnapshot(
-        ts=datetime.datetime.now(datetime.timezone.utc),
+        ts=ts,
         username=p_data["username"],
         tl_games_played=tl_data["gamesplayed"],
         tl_games_won=tl_data["gameswon"],
@@ -470,6 +473,7 @@ def get_player_snapshots(
         pps=tl_data["pps"] if "pps" in tl_data else None,
         vs=tl_data["vs"] if "vs" in tl_data else None,
         decaying=tl_data["decaying"],
+        player_id=p_data["_id"],
     )
 
     return (p_snapshot, tl_snapshot)

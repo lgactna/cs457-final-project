@@ -44,7 +44,7 @@ layout = html.Div(
 def update_player_options(_) -> list[dict[str, str]]:
     # Start by getting all players for which we have matches for
     with db_con.session_maker.begin() as session:
-        result = session.execute(
+        result: list[tuple[str, str]] = session.execute(
             sqlalchemy.select(
                 models.LeagueMatchPlayer.player_id,
                 sqlalchemy.func.group_concat(

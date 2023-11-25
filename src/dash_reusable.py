@@ -369,3 +369,55 @@ def generate_tl_snapshot_table(
         page_current=0,
         page_size=5,
     )
+
+
+def generate_player_snapshot_table(
+    snapshots: list[models.PlayerSnapshot],
+) -> Union[dash_table.DataTable, html.Em]:
+    """
+    Generate a table of snapshots.
+
+    The table format is as follows:
+    - timestamp
+    - username
+    - role
+    - xp
+    - games_played
+    - games_won
+    - game_time (converted)
+    - friend_count
+    """
+
+    if len(snapshots) == 0:
+        return html.Em("No data!")
+
+    snapshot_rows: list[dict] = []
+
+    for snapshot in snapshots:
+        snapshot_rows.append(
+            {
+                "timestamp": snapshot.ts.strftime(util.STD_TIME_FMT),
+                "username": snapshot.username,
+                "role": snapshot.role,
+                "xp": snapshot.xp,
+                "games_played": snapshot.games_played,
+                "games_won": snapshot.games_won,
+                "game_time": str(datetime.timedelta(seconds=snapshot.game_time)),
+                "friend_count": snapshot.friend_count,
+            }
+        )
+
+    # Finally, from these, create a dataframe
+    df = pd.DataFrame(snapshot_rows)
+
+    # And create the DataTable (pagination set at 5 for now)
+    return dash_table.DataTable(
+        df.to_dict("records"),
+        [{"name": i, "id": i} for i in df.columns],
+        filter_action="native",
+        sort_action="native",
+        sort_mode="single",
+        page_action="native",
+        page_current=0,
+        page_size=5,
+    )

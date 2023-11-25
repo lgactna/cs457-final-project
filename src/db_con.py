@@ -109,16 +109,14 @@ def merge_records(
     return lhs
 
 
-def get_global_timestamps() -> set[datetime.datetime]:
+def get_global_timestamps() -> list[datetime.datetime]:
     """
     Return all the available timestamps for global LeagueSnapshot instances.
     """
     with session_maker.begin() as session:
-        return set(
-            session.scalars(
-                sqlalchemy.select(models.LeagueSnapshot.ts)
-                .where(models.LeagueSnapshot.is_global)
-                .distinct()
-                .order_by(models.LeagueSnapshot.ts)
-            )
-        )
+        return session.scalars(
+            sqlalchemy.select(models.LeagueSnapshot.ts)
+            .where(models.LeagueSnapshot.is_global)
+            .distinct()
+            .order_by(models.LeagueSnapshot.ts.desc())
+        ).all()

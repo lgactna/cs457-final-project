@@ -80,6 +80,14 @@ class PlayerSnapshot(Base):
     time.
     """
 
+    DROPDOWN_OPTIONS = [
+        {"label": "XP", "value": "xp"},
+        {"label": "Games played", "value": "games_played"},
+        {"label": "Games won", "value": "games_won"},
+        {"label": "Game time (sec)", "value": "game_time"},
+        {"label": "Friends", "value": "friend_count"},
+    ]
+
     __tablename__ = "player_snapshot"
 
     # Autoincrementing serial ID.
