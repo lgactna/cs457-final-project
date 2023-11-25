@@ -48,10 +48,15 @@ layout = html.Div(
     prevent_initial_call=True,
 )
 def get_player_data(_, user: str) -> html.Div:
+    if user is None:
+        return html.Div(dcc.Markdown("**Lookup failed:** the user cannot be empty!"))
+
     # Check if the user exists
     uuid = tetrio_api.get_id_from_username(user)
     if uuid is None:
-        return [dcc.Markdown("**Lookup failed:** this user doesn't seem to exist!")] * 2
+        return html.Div(
+            dcc.Markdown("**Lookup failed:** this user doesn't seem to exist!")
+        )
 
     # If this succeeds, assume all successive lookups will succeed.
     # Wrap everything in a session so that things don't explode

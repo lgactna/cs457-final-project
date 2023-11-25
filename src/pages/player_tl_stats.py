@@ -49,6 +49,9 @@ layout = html.Div(
     prevent_initial_call=True,
 )
 def get_player_data(_, user: str) -> html.Div:
+    if user is None:
+        return html.Div(dcc.Markdown("**The user cannot be empty!**"))
+
     # Check if the user exists in the database; prefer uuids to usernames.
     # If a username is provided, attempt to resolve it to a UUID by poking
     # at the database.
