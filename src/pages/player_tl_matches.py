@@ -82,13 +82,3 @@ def update_output(uuid: str) -> html.Div:
             rounds_table,
         ]
     )
-
-    #     # Note that we have to generate this in the context of the session; else,
-    #     # all the objects we get are instantly expired
-    #     df = pd.DataFrame([models.todict(obj) for obj in result])
-
-    # # for some reason it *only* accepts dataframes?
-    # fig = px.histogram(
-    #     df, x=statistic, color_discrete_map=util.RANK_TO_COLOR, color="rank"
-    # )
-    # return fig
