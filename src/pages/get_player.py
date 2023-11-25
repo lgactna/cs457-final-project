@@ -2,12 +2,9 @@ import logging
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, State, callback, dash_table
-
-import pandas as pd
+from dash import dcc, html, Input, Output, State, callback
 
 import db_con
-import models
 import tetrio_api
 import dash_reusable
 

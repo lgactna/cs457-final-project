@@ -1,6 +1,6 @@
 import dash
 import dash_bootstrap_components as dbc
-from dash import dcc, html, Input, Output, callback
+from dash import html, Input, Output, callback
 
 # This is registered as the homepage with path `/`, else accessing the server
 # yields a 404 until you click on one of the pages
@@ -17,8 +17,9 @@ layout = html.Div(
                     [
                         html.P(
                             "Use this to update the global ranked player statistics. You are limited"
-                            " to retrieving this information once per hour based on the most recent"
-                            " timestamp available in the databse. Unranked players are not included."
+                            " to retrieving this information once per day based on the most recent"
+                            " timestamps available in the databse. Unranked players are not included."
+                            " This will take about two minutes - be patient!"
                         ),
                         dbc.Button(
                             "Request global statistics",

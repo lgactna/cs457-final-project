@@ -11,7 +11,8 @@ specific features (e.g. Postgres's "upsert", i.e. insert if not present or updat
 at the cost of some performance -- for our scale, this isn't too impactful
 """
 from typing import Optional, Union
-from pathlib import Path
+
+import datetime
 import logging
 
 
@@ -21,8 +22,8 @@ import models
 
 logger = logging.getLogger(__name__)
 
-engine: Optional[sqlalchemy.Engine] = None
-session_maker: Optional[sqlalchemy.orm.sessionmaker] = None
+engine: sqlalchemy.Engine = None
+session_maker: sqlalchemy.orm.sessionmaker = None
 
 
 def init_engine(url: str, echo: bool = True) -> None:
@@ -107,15 +108,16 @@ def merge_records(
 
     return lhs
 
-def regenerate_global_data(data_dir: Path):
-    """
-    Regenerate the global data captures from a directory of JSON dumps.
-    
-    If the associated timestamp is already present in the database, this does
-    nothing.
-    """
 
-# TODO: Add function here loading data from global_data
-
-# TODO: Make get_global_stats.py just save the entirety of the response
-# to /global_data
+def get_global_timestamps() -> set[datetime.datetime]:
+    """
+    Return all the available timestamps for global LeagueSnapshot instances.
+    """
+    with session_maker.begin() as session:
+        return set(
+            session.scalars(
+                sqlalchemy.select(models.LeagueSnapshot.ts)
+                .where(models.LeagueSnapshot.is_global)
+                .distinct()
+            )
+        )

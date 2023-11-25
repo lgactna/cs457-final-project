@@ -1,6 +1,4 @@
-import datetime
-
-from dash import dcc, html, Input, Output, State, callback
+from dash import dcc, html, Input, Output, callback
 import dash
 import dash_bootstrap_components as dbc
 import plotly.express as px
@@ -20,9 +18,7 @@ OPTION_NONE = "(none)"
 
 # Calculate available options for the rank and timestamp dropdowns
 with db_con.session_maker.begin() as session:
-    available_times: list[datetime.datetime] = list(
-        session.scalars(sqlalchemy.select(models.LeagueSnapshot.ts).distinct())
-    )
+    available_times = db_con.get_global_timestamps()
     time_options = [
         {"label": val.strftime(util.STD_TIME_FMT), "value": val}
         for val in available_times

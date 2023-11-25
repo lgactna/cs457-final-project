@@ -62,7 +62,9 @@ def update_output(statistic: str) -> plotly.graph_objs.Figure:
                 models.LeagueSnapshot.ts,
                 models.LeagueSnapshot.rank,
                 sqlalchemy.func.avg(getattr(models.LeagueSnapshot, statistic)),
-            ).group_by(models.LeagueSnapshot.ts, models.LeagueSnapshot.rank)
+            )
+            .where(models.LeagueSnapshot.is_global)
+            .group_by(models.LeagueSnapshot.ts, models.LeagueSnapshot.rank)
         ).all()
 
         df = pd.DataFrame(result, columns=["timestamp", "rank", "average"])

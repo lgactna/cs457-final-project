@@ -5,8 +5,10 @@ With the exception of `get_player_by_uuid`, which reads the database, none of
 these routines interact with the underlying database at all; they simply create
 ORM-mapped objects that can be committed and handled by the user as needed.
 """
-from typing import Union
+from pathlib import Path
+from typing import Optional, Union
 import datetime
+import json
 import logging
 import time
 
@@ -20,6 +22,8 @@ import util
 logger = logging.getLogger(__name__)
 
 API = "https://ch.tetr.io/api"
+
+GLOBAL_DATA_DIR = Path("./global_data")
 
 
 def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
@@ -82,7 +86,7 @@ def get_id_from_username(username: str) -> Union[str, None]:
     """
     # Always convert to lowercase.
     username = username.lower()
-    
+
     r = requests.get(f"{API}/users/{username}")
     data = r.json()
 
@@ -92,7 +96,12 @@ def get_id_from_username(username: str) -> Union[str, None]:
         return None
 
 
-def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
+def get_global_data(
+    data: dict,
+    *,
+    preset_ts: Optional[datetime.datetime] = None,
+    out_dir: Path = GLOBAL_DATA_DIR,
+) -> list[models.LeagueSnapshot]:
     """
     Get Tetra League snapshots for every ranked player.
 
@@ -100,11 +109,34 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
     development, you should aim to use a stored copy of the global data where
     needed.
     """
+    if preset_ts:
+        ts = preset_ts
+    else:
+        ts = datetime.datetime.now(datetime.timezone.utc)
+
     if not data:
+        # Test if this should be allowed at all
+        trunc_dt = ts.replace(hour=0, minute=0, second=0, microsecond=0)
+        if trunc_dt in db_con.get_global_timestamps():
+            logger.error(
+                "There already exists global data for today in the database - returning an empty list!"
+            )
+            return []
+
+        logger.warning(
+            "Generating API request for the global TL dump! Stalling for thirty seconds."
+        )
+        time.sleep(30)
         r = requests.get(f"{API}/users/lists/league/all")
         data = r.json()
 
-    ts = datetime.datetime.now(datetime.timezone.utc)
+        # Save the contents of the response out to a JSON file as needed
+        name = ts.strftime("global-%Y-%m-%d.json")
+        target = out_dir / name
+        logger.info(f"Writing received JSON as {target}")
+        with open(target) as fp:
+            fp.write(r.text)
+
     snapshots: list[models.LeagueSnapshot] = []
 
     for rank, user in enumerate(data["data"]["users"], 1):
@@ -127,9 +159,54 @@ def get_global_data(data: dict) -> list[models.LeagueSnapshot]:
                 vs=tl_data["vs"],
                 decaying=tl_data["decaying"],
                 player_id=user["_id"],
-                is_global=True
+                is_global=True,
             )
         )
+
+    return snapshots
+
+
+def regenerate_global_data(data_dir: Path) -> list[models.LeagueSnapshot]:
+    """
+    Regenerate the global data captures from a directory of JSON dumps. The
+    file format is required to be "global-yyyy-mm-dd.json".
+
+    If the associated timestamp is already present in the database, this does
+    nothing for that file.
+
+    Returns a list of LeagueSnapshot instances that are *unlikely* to already
+    be in the database based on their timestamp.
+    """
+    logger.debug(f"Attempting to regenerate global data from {data_dir}")
+
+    # First, get all the unique timestamps already present; only take "global"
+    # snapshots
+    snapshots: list[models.LeagueSnapshot] = []
+
+    existing_times = db_con.get_global_timestamps()
+
+    # Then, iterate over each file and check if it's already in the database.
+    # If not, add the data it contains.
+    for file in data_dir.glob("**/*"):
+        if not file.is_file():
+            logger.debug(f"Skipping {file}, is a directory")
+            continue
+
+        try:
+            ts = datetime.datetime.strptime(file.name, "global-%Y-%m-%d.json")
+        except ValueError:
+            logger.debug(f"Skipping {file}, does not match required format")
+            continue
+
+        if ts in existing_times:
+            logger.debug(
+                f"Skipping {file}, data at timestamp already exists in database"
+            )
+            continue
+
+        logger.info(f"Importing data from {file}")
+        with open(file) as fp:
+            snapshots += get_global_data(json.load(fp), preset_ts=ts)
 
     return snapshots
 
@@ -326,11 +403,11 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
         return None
 
     for gamemode_record in data["data"]["records"].values():
-        if not gamemode_record['record']: 
+        if not gamemode_record["record"]:
             # The API always returns a key for 40L and Blitz, even if a player
             # has never played that mode
             continue
-        
+
         game_obj: models.PlayerGame = parse_record(gamemode_record["record"], user)
         game_obj.rank = gamemode_record["rank"]
         game_obj.is_record = True

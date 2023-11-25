@@ -19,7 +19,7 @@ def generate_player_card(
         standing = html.div("(unranked)")
     else:
         standing = html.Div(f"#{tl_snapshot.standing}")
-    
+
     # dear god lol
     tl_card_body = dbc.Row(
         [
