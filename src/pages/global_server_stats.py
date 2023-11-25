@@ -64,7 +64,7 @@ def update_output(statistic: str) -> plotly.graph_objs.Figure:
             .where(models.LeagueSnapshot.is_global)
             .group_by(models.LeagueSnapshot.ts, models.LeagueSnapshot.rank)
         ).all()
-        
+
         if not result:
             # In the case there's no data.
             df = pd.DataFrame()

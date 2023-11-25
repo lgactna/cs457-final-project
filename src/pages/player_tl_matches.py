@@ -32,12 +32,13 @@ layout = html.Div(
                 dbc.Col([html.Div(id="output-tl-matches")], width=12),
             ]
         ),
-        html.Div(id="dummy-matches")
+        html.Div(id="dummy-matches"),
     ]
 )
 
+
 @callback(
-    Output("dropdown-players-matches", "options"), 
+    Output("dropdown-players-matches", "options"),
     Input("dummy-matches", "children"),
 )
 def update_player_options(_) -> list[dict[str, str]]:
@@ -46,16 +47,20 @@ def update_player_options(_) -> list[dict[str, str]]:
         result = session.execute(
             sqlalchemy.select(
                 models.LeagueMatchPlayer.player_id,
-                sqlalchemy.func.group_concat(models.LeagueMatchPlayer.username.distinct()),
+                sqlalchemy.func.group_concat(
+                    models.LeagueMatchPlayer.username.distinct()
+                ),
             ).group_by(models.LeagueMatchPlayer.player_id)
         ).all()
         available_players = [
-            {"label": f"{usernames} ({uuid})", "value": uuid} for uuid, usernames in result
+            {"label": f"{usernames} ({uuid})", "value": uuid}
+            for uuid, usernames in result
         ]
 
     # Also tack on the option of "nothing"
     available_players.append({"label": OPTION_NONE, "value": OPTION_NONE})
     return available_players
+
 
 @callback(
     Output("output-tl-matches", "children"),

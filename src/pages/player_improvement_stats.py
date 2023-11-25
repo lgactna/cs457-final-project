@@ -61,8 +61,8 @@ layout = html.Div(
 # Because there is a *possibility* that this takes an extended amount of time,
 # I opted to take the approach of building blank callbacks.
 @callback(
-    Output("dropdown-players-improvement", "options"), 
-    Input("dummy-improvement", "children")
+    Output("dropdown-players-improvement", "options"),
+    Input("dummy-improvement", "children"),
 )
 def update_player_options(_) -> list[dict[str, str]]:
     # Start by getting all players for which we have games for; derive them from the

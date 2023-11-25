@@ -69,17 +69,20 @@ layout = html.Div(
                 ),
             ]
         ),
-        html.Div(id="dummy-global-tl-stats")
+        html.Div(id="dummy-global-tl-stats"),
     ]
 )
 
+
 @callback(
-    Output("dropdown-rank-filter", "options"), 
-    Output("dropdown-timestamp", "options"), 
-    Output("dropdown-timestamp", "value"), 
-    Input("dummy-global-tl-stats", "children")
+    Output("dropdown-rank-filter", "options"),
+    Output("dropdown-timestamp", "options"),
+    Output("dropdown-timestamp", "value"),
+    Input("dummy-global-tl-stats", "children"),
 )
-def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, str]], str]:
+def update_rank_time_options(
+    _,
+) -> tuple[list[dict[str, str]], list[dict[str, str]], str]:
     # Calculate available options for the rank and timestamp dropdowns
     with db_con.session_maker.begin() as session:
         available_times = db_con.get_global_timestamps()
@@ -93,9 +96,9 @@ def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, st
         )
 
     rank_options.append(OPTION_NONE)
-    
-    return rank_options, time_options, time_options[0]['value']
-    
+
+    return rank_options, time_options, time_options[0]["value"]
+
 
 @callback(
     Output("graph-distribution", "figure"),
@@ -110,7 +113,7 @@ def update_output(
     if timestamp == OPTION_NONE:
         df = pd.DataFrame()
         return px.histogram(df)
-    
+
     # Construct query conditionally based on what's been selected
     queries = []
     if rank_filter != OPTION_NONE:
