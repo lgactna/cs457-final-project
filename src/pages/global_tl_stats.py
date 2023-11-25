@@ -76,9 +76,10 @@ layout = html.Div(
 @callback(
     Output("dropdown-rank-filter", "options"), 
     Output("dropdown-timestamp", "options"), 
+    Output("dropdown-timestamp", "value"), 
     Input("dummy-global-tl-stats", "children")
 )
-def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, str]], str]:
     # Calculate available options for the rank and timestamp dropdowns
     with db_con.session_maker.begin() as session:
         available_times = db_con.get_global_timestamps()
@@ -93,7 +94,7 @@ def update_rank_time_options(_) -> tuple[list[dict[str, str]], list[dict[str, st
 
     rank_options.append(OPTION_NONE)
     
-    return rank_options, time_options
+    return rank_options, time_options, time_options[0]['value']
     
 
 @callback(

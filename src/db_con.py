@@ -119,5 +119,6 @@ def get_global_timestamps() -> set[datetime.datetime]:
                 sqlalchemy.select(models.LeagueSnapshot.ts)
                 .where(models.LeagueSnapshot.is_global)
                 .distinct()
+                .order_by(models.LeagueSnapshot.ts)
             )
         )
