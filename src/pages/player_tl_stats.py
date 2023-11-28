@@ -75,9 +75,9 @@ def get_player_data(_, user: str) -> html.Div:
             user = snapshot.player_id
 
         snapshots: list[models.LeagueSnapshot] = session.scalars(
-            sqlalchemy.select(models.LeagueSnapshot).where(
-                models.LeagueSnapshot.player_id == user
-            )
+            sqlalchemy.select(models.LeagueSnapshot)
+            .where(models.LeagueSnapshot.player_id == user)
+            .order_by(models.LeagueSnapshot.ts)
         ).all()
 
         if not snapshots:

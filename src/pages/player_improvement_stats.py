@@ -104,10 +104,12 @@ def update_output(uuid: str, gamemode: str) -> html.Div:
     # Start by grabbing all the games associated with this UUID
     with db_con.session_maker.begin() as session:
         result: list[models.PlayerGame] = session.scalars(
-            sqlalchemy.select(models.PlayerGame).where(
+            sqlalchemy.select(models.PlayerGame)
+            .where(
                 models.PlayerGame.player_id == uuid,
                 models.PlayerGame.gamemode == gamemode,
             )
+            .order_by(models.PlayerGame.ts)  # enforce ordering for line graph
         ).all()
 
         # Construct dataframe

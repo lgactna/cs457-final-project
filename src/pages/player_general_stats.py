@@ -123,7 +123,6 @@ def update_player_card(id: str) -> Union[html.Div, dbc.Row]:
             models.PlayerSnapshot, models.LeagueSnapshot
         ] = session.execute(
             sqlalchemy.select(models.PlayerSnapshot, models.LeagueSnapshot)
-            .where(models.PlayerSnapshot.id == id)
             .join(
                 models.LeagueSnapshot,
                 sqlalchemy.and_(
@@ -131,6 +130,7 @@ def update_player_card(id: str) -> Union[html.Div, dbc.Row]:
                     models.LeagueSnapshot.ts == models.PlayerSnapshot.ts,
                 ),
             )
+            .where(models.PlayerSnapshot.id == id)
         ).one_or_none()
 
         if not snapshots:
@@ -152,9 +152,9 @@ def update_stats_and_snapshots(uuid: str) -> html.Div:
 
     with db_con.session_maker.begin() as session:
         snapshots: list[models.PlayerSnapshot] = session.scalars(
-            sqlalchemy.select(models.PlayerSnapshot).where(
-                models.PlayerSnapshot.player_id == uuid
-            )
+            sqlalchemy.select(models.PlayerSnapshot)
+            .where(models.PlayerSnapshot.player_id == uuid)
+            .order_by(models.PlayerSnapshot.ts)
         ).all()
 
         if not snapshots:

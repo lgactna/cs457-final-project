@@ -128,7 +128,9 @@ def update_output(
 
     with db_con.session_maker.begin() as session:
         result = session.scalars(
-            sqlalchemy.select(models.LeagueSnapshot).where(*queries)
+            sqlalchemy.select(models.LeagueSnapshot)
+            .where(*queries)
+            .order_by(models.LeagueSnapshot.ts)
         )
 
         # Note that we have to generate this in the context of the session; else,
