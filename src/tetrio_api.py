@@ -46,7 +46,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
 
     # Check DB by default
     if u := db_con.get_player(uuid):
-        logger.debug("Used database version of model...")
+        logger.debug(f"Retrieved database version of model for {uuid=}")
         return u
 
     if use_api:
@@ -70,7 +70,7 @@ def get_player_by_uuid(uuid: str, use_api: bool = False) -> models.Player:
     # Auto-commit the new player, so that any successive operations will use
     # the stored player object instead of creating new ones
     with db_con.session_maker.begin() as session:
-        logger.debug("Created and committed new model...")
+        logger.debug(f"Created and committed new model for {uuid=}")
         session.add(u)
 
     return u
@@ -115,9 +115,6 @@ def get_global_data(
         ts = datetime.datetime.now(datetime.timezone.utc)
 
     if not data:
-        # TODO: Still gotta see if this actually works, stopped testing since
-        # I've hit this like five times already
-
         # Test if this should be allowed at all. Note that the timestamps in the
         # database have no timezone information, so we have to strip that off
         # as well.
@@ -144,10 +141,17 @@ def get_global_data(
 
     snapshots: list[models.LeagueSnapshot] = []
 
+    # Generate all players in advance; prevents the FK constraint from
+    # complaining on postgres because the players don't actually exist yet
+    db_con.batch_create_player_objs([user["_id"] for user in data["data"]["users"]])
+
     for rank, user in enumerate(data["data"]["users"], 1):
         # We don't use the `player` relationship here to avoid the weird
         # out-of-session reconciliation that would need to happen otherwise.
-        # player = get_player_by_uuid(user["_id"])
+        # However, there is still the case where the player object does not yet
+        # exist; in turn, we still use the function to generate the underlying
+        # player entry as needed.
+
         tl_data = user["league"]
         snapshots.append(
             models.LeagueSnapshot(

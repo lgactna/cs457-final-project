@@ -47,8 +47,8 @@ def update_player_options(_) -> list[dict[str, str]]:
         result: list[tuple[str, str]] = session.execute(
             sqlalchemy.select(
                 models.LeagueMatchPlayer.player_id,
-                sqlalchemy.func.group_concat(
-                    models.LeagueMatchPlayer.username.distinct()
+                sqlalchemy.func.string_agg(
+                    models.LeagueMatchPlayer.username.distinct(), ","
                 ),
             ).group_by(models.LeagueMatchPlayer.player_id)
         ).all()

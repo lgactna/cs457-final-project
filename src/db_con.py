@@ -10,7 +10,7 @@ This also includes some various convenience methods to avoid using any database-
 specific features (e.g. Postgres's "upsert", i.e. insert if not present or update)
 at the cost of some performance -- for our scale, this isn't too impactful
 """
-from typing import Union
+from typing import Union, Iterable
 
 import datetime
 import logging
@@ -120,3 +120,25 @@ def get_global_timestamps() -> list[datetime.datetime]:
             .distinct()
             .order_by(models.LeagueSnapshot.ts.desc())
         ).all()
+
+
+def batch_create_player_objs(ids: Iterable[str]) -> None:
+    """
+    Instantiate and commit many player objects at once.
+
+    This takes the IDs not already present in `ids` and creates new Player
+    objects without a joindate specified.
+    """
+    with session_maker.begin() as session:
+        # Get all players
+        existing_players = set(
+            session.scalars(sqlalchemy.select(models.Player.id).distinct())
+        )
+
+        # Subtract from the existing set
+        new_ids: set = set(ids) - existing_players
+
+        logger.info(f"Creating and committing {len(new_ids)} new player objects")
+
+        # Use list comprehension to generate the relevant data and commit
+        session.add_all([models.Player(id=new_id) for new_id in new_ids])

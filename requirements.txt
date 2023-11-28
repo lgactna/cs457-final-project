@@ -6,6 +6,7 @@ plotly
 requests
 SQLAlchemy
 python-dateutil
+psycopg2
 
 # Linting
 black

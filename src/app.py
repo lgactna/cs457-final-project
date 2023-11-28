@@ -90,12 +90,16 @@ if __name__ == "__main__":
         "Starting connection to DB and making tables if they don't already exist"
     )
     # Note that echo=True also echos logging.INFO level messages to the log.
-    db_con.init_engine("sqlite:///tetrio.db", echo=False)
+    db_con.init_engine(
+        "postgresql+psycopg2://postgres:password@localhost/postgres", echo=False
+    )
     models.create_tables(db_con.engine)
 
     # Regenerate global data if needed
     snapshots = tetrio_api.regenerate_global_data(Path("./global_data").resolve())
-    logger.debug(f"Got {len(snapshots)} records back from regeneration")
+    logger.info(
+        f"Got {len(snapshots)} records back from regeneration - this may take a while if the app is being run for the first time"
+    )
     with db_con.session_maker.begin() as session:
         session.add_all(snapshots)
 
