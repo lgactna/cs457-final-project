@@ -12,6 +12,8 @@ And run the application:
 python src/app.py
 ```
 
+After this, you can simply navigate to `http://127.0.0.1:8050/` (or the link printed in stdout) to interact with the application.
+
 Note that this program assumes that it is connecting to:
 - a database called `postgres`
 - running on `localhost` on the default port (5432)
