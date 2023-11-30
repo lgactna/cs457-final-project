@@ -1,5 +1,6 @@
 from pathlib import Path
 import logging
+import os
 import sys
 
 import dash
@@ -9,6 +10,8 @@ import dash_bootstrap_components as dbc
 import db_con
 import tetrio_api
 import models
+
+from dotenv import load_dotenv
 
 logging.basicConfig(
     handlers=[
@@ -85,13 +88,19 @@ def generate_container() -> html.Div:
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    
+    db_name = os.getenv("POSTGRES_DB")
+    db_user = os.getenv("POSTGRES_USERNAME")
+    db_pw = os.getenv("POSTGRES_PASSWORD")
+    
     # This has to be done before the pages are registered
     logger.info(
         "Starting connection to DB and making tables if they don't already exist"
     )
     # Note that echo=True also echos logging.INFO level messages to the log.
     db_con.init_engine(
-        "postgresql+psycopg2://postgres:password@localhost/postgres", echo=False
+        f"postgresql+psycopg2://{db_user}:{db_pw}@localhost/{db_name}", echo=False
     )
     models.create_tables(db_con.engine)
 

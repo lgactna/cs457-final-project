@@ -6,6 +6,7 @@ plotly
 requests
 SQLAlchemy
 python-dateutil
+python-dotenv
 psycopg2
 
 # Linting
