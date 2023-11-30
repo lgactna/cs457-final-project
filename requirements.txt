@@ -4,7 +4,7 @@ dash-bootstrap-components
 pandas
 plotly
 requests
-SQLAlchemy
+SQLAlchemy==2.0.23
 python-dateutil
 python-dotenv
 psycopg2
