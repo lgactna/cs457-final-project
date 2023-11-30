@@ -101,6 +101,17 @@ def get_player_data(_, user: str) -> html.Div:
                         "value": getattr(snapshot, var["value"]),
                     }
                 )
+                
+            # Also tack on rank as well - this doesn't make too much sense
+            # globally, but it does make sense here
+            stat_rows.append(
+                {
+                    "timestamp": snapshot.ts,
+                    "stat_label": "Standing",
+                    "value": snapshot.standing,
+                }
+            )
+                
 
         # Then create a DF and figure, then place it in an object
         df = pd.DataFrame(stat_rows)

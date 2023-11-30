@@ -229,7 +229,8 @@ def match_from_game(data: dict) -> models.LeagueMatch:
 
     match_players: list[models.LeagueMatchPlayer] = []
     for player in data["endcontext"]:
-        # player_obj = get_player_by_uuid(player["id"])
+        # Artificially create the associated player object if needed
+        get_player_by_uuid(player["id"])
 
         # Generate match player
         match_player_obj = models.LeagueMatchPlayer(
@@ -349,7 +350,8 @@ def get_player_recent(user: str) -> Union[list[models.PlayerGame], None]:
     if not data["success"]:
         return None
 
-    # player_obj = get_player_by_uuid(user, use_api=True)
+    # Create the player object if needed
+    get_player_by_uuid(user, use_api=False)
 
     games: list[models.PlayerGame] = []
     for game in data["data"]["records"]:
@@ -400,7 +402,7 @@ def get_player_records(user: str) -> Union[list[models.PlayerGame], None]:  # ty
     if data["data"]["records"]:
         raw_records += data["data"]["records"][1:]
 
-    # player_obj = get_player_by_uuid(user, use_api=True)
+    get_player_by_uuid(user, use_api=True)
     games: list[models.PlayerGame] = []
     for game in raw_records:
         games.append(parse_record(game, user))
@@ -444,7 +446,7 @@ def get_player_snapshots(
         return None
 
     p_data = data["data"]["user"]
-    # player_obj = get_player_by_uuid(p_data["_id"])
+    get_player_by_uuid(p_data["_id"])
 
     # Force them to both share the same timestamp
     ts = datetime.datetime.now(datetime.timezone.utc)
